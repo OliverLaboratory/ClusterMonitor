@@ -1,0 +1,1342 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Compute Monitor</title>
+<link rel="icon" type="image/png" href="/static/img/favicon.png">
+<style>
+  :root {
+    --bg: #0f1117;
+    --card: #1a1d27;
+    --card-border: #2a2d3a;
+    --text: #e0e0e0;
+    --text-dim: #888;
+    --accent: #6c8cff;
+    --green: #4caf50;
+    --yellow: #ff9800;
+    --red: #f44336;
+    --bar-bg: #2a2d3a;
+  }
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body {
+    font-family: 'SF Mono', 'Cascadia Code', 'Consolas', monospace;
+    background: var(--bg);
+    color: var(--text);
+    padding: 20px;
+    min-height: 100vh;
+  }
+  header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 24px;
+    padding-bottom: 16px;
+    border-bottom: 1px solid var(--card-border);
+  }
+  header h1 { font-size: 1.4rem; font-weight: 600; letter-spacing: 0.5px; }
+  #status {
+    font-size: 0.8rem;
+    color: var(--text-dim);
+  }
+  #status .dot {
+    display: inline-block;
+    width: 8px; height: 8px;
+    border-radius: 50%;
+    background: var(--green);
+    margin-right: 6px;
+    animation: pulse 2s infinite;
+  }
+  @keyframes pulse {
+    0%, 100% { opacity: 1; }
+    50% { opacity: 0.4; }
+  }
+  .grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(420px, 1fr));
+    gap: 16px;
+  }
+  .card {
+    background: var(--card);
+    border: 1px solid var(--card-border);
+    border-radius: 10px;
+    padding: 18px;
+    transition: border-color 0.2s;
+  }
+  .card:hover { border-color: var(--accent); }
+  .card.offline { opacity: 0.5; }
+  .card-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 14px;
+  }
+  .card-header h2 {
+    font-size: 1.1rem;
+    font-weight: 600;
+  }
+  .card-header .badge {
+    font-size: 0.7rem;
+    padding: 3px 8px;
+    border-radius: 4px;
+    background: #2a3a2a;
+    color: var(--green);
+    font-weight: 500;
+  }
+  .card-header .badge.offline-badge {
+    background: #3a2a2a;
+    color: var(--red);
+  }
+  .card-header .desc {
+    font-size: 0.75rem;
+    color: var(--text-dim);
+    margin-left: 8px;
+  }
+  /* Portraits */
+  .portrait {
+    width: 48px;
+    height: 48px;
+    border-radius: 50%;
+    object-fit: cover;
+    object-position: top;
+    border: 2px solid var(--card-border);
+    flex-shrink: 0;
+  }
+  .mini-card .portrait-sm {
+    width: 32px;
+    height: 32px;
+    border-radius: 50%;
+    object-fit: cover;
+    object-position: top;
+    border: 1.5px solid var(--card-border);
+    float: right;
+    margin: -2px 0 4px 8px;
+  }
+
+  .section-label {
+    font-size: 0.7rem;
+    color: var(--text-dim);
+    text-transform: uppercase;
+    letter-spacing: 1px;
+    margin: 12px 0 6px 0;
+  }
+  .section-label:first-of-type { margin-top: 0; }
+
+  /* Bar charts */
+  .bar-row {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    margin-bottom: 4px;
+    font-size: 0.78rem;
+  }
+  .bar-label {
+    min-width: 80px;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+  .bar-wrap {
+    flex: 1;
+    height: 16px;
+    background: var(--bar-bg);
+    border-radius: 3px;
+    overflow: hidden;
+    position: relative;
+  }
+  .bar-fill {
+    height: 100%;
+    border-radius: 3px;
+    transition: width 0.5s ease;
+  }
+  .bar-value {
+    min-width: 48px;
+    text-align: right;
+    font-size: 0.72rem;
+    color: var(--text-dim);
+  }
+
+  /* Color thresholds */
+  .fill-low { background: var(--green); }
+  .fill-mid { background: var(--yellow); }
+  .fill-high { background: var(--red); }
+
+  /* Stats row */
+  .stats-row {
+    display: flex;
+    gap: 16px;
+    flex-wrap: wrap;
+    margin-bottom: 6px;
+  }
+  .stat {
+    font-size: 0.78rem;
+  }
+  .stat .val {
+    font-weight: 600;
+    color: var(--accent);
+  }
+
+  /* Process table */
+  .proc-table {
+    width: 100%;
+    font-size: 0.72rem;
+    border-collapse: collapse;
+    margin-top: 4px;
+  }
+  .proc-table th {
+    text-align: left;
+    color: var(--text-dim);
+    font-weight: 500;
+    padding: 3px 6px;
+    border-bottom: 1px solid var(--card-border);
+  }
+  .proc-table td {
+    padding: 3px 6px;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    max-width: 200px;
+  }
+  .proc-table tr:nth-child(even) td {
+    background: rgba(255,255,255,0.02);
+  }
+
+  .error-msg {
+    color: var(--red);
+    font-size: 0.85rem;
+    padding: 12px;
+  }
+
+  /* Loading skeleton */
+  .skeleton {
+    background: linear-gradient(90deg, var(--card) 25%, #252836 50%, var(--card) 75%);
+    background-size: 200% 100%;
+    animation: shimmer 1.5s infinite;
+    border-radius: 4px;
+    height: 16px;
+    margin: 8px 0;
+  }
+  @keyframes shimmer {
+    0% { background-position: -200% 0; }
+    100% { background-position: 200% 0; }
+  }
+
+  .gpu-temp {
+    font-size: 0.72rem;
+    color: var(--text-dim);
+  }
+
+  .users-list {
+    font-size: 0.78rem;
+    color: var(--text-dim);
+  }
+  .users-list span {
+    color: var(--accent);
+    font-weight: 500;
+  }
+
+  /* Overview grid */
+  .overview {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
+    gap: 10px;
+    margin-bottom: 24px;
+  }
+  .mini-card {
+    background: var(--card);
+    border: 1px solid var(--card-border);
+    border-radius: 8px;
+    padding: 12px;
+    cursor: pointer;
+    transition: border-color 0.2s, transform 0.1s;
+  }
+  .mini-card:hover {
+    border-color: var(--accent);
+    transform: translateY(-1px);
+  }
+  .mini-card.offline { opacity: 0.45; }
+  .mini-card .mc-name {
+    font-size: 0.85rem;
+    font-weight: 600;
+    margin-bottom: 2px;
+  }
+  .mini-card .mc-desc {
+    font-size: 0.65rem;
+    color: var(--text-dim);
+    margin-bottom: 8px;
+  }
+  .mini-bar {
+    height: 8px;
+    background: var(--bar-bg);
+    border-radius: 3px;
+    overflow: hidden;
+    margin-bottom: 3px;
+  }
+  .mini-bar .bar-fill { height: 100%; border-radius: 3px; }
+  .mini-label-row {
+    display: flex;
+    justify-content: space-between;
+    font-size: 0.62rem;
+    color: var(--text-dim);
+    margin-bottom: 6px;
+  }
+  .mini-label-row .val { color: var(--text); font-weight: 500; }
+
+  /* User cards */
+  .user-card {
+    background: var(--card);
+    border: 1px solid var(--card-border);
+    border-radius: 8px;
+    padding: 12px;
+    transition: border-color 0.2s;
+  }
+  .user-card:hover { border-color: var(--accent); }
+  .user-card-header {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    margin-bottom: 10px;
+  }
+  .user-portrait {
+    width: 36px;
+    height: 36px;
+    border-radius: 50%;
+    object-fit: cover;
+    object-position: top;
+    border: 2px solid var(--card-border);
+    flex-shrink: 0;
+  }
+  .user-card-header .uc-name {
+    font-size: 0.85rem;
+    font-weight: 600;
+  }
+  .user-card-header .uc-user {
+    font-size: 0.65rem;
+    color: var(--text-dim);
+  }
+  .user-server-row {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    font-size: 0.72rem;
+    margin-bottom: 3px;
+  }
+  .user-server-row .srv-name {
+    min-width: 72px;
+    color: var(--accent);
+    font-weight: 500;
+  }
+  .user-server-row .srv-detail {
+    color: var(--text-dim);
+  }
+  .user-totals {
+    display: flex;
+    gap: 12px;
+    font-size: 0.7rem;
+    color: var(--text-dim);
+    margin-top: 8px;
+    padding-top: 6px;
+    border-top: 1px solid var(--card-border);
+  }
+  .user-totals .val { color: var(--text); font-weight: 600; }
+
+  .overview-title {
+    font-size: 0.75rem;
+    color: var(--text-dim);
+    text-transform: uppercase;
+    letter-spacing: 1px;
+    margin-bottom: 10px;
+  }
+
+  /* Refresh button */
+  #refresh-btn {
+    background: none;
+    border: 1px solid var(--card-border);
+    color: var(--text-dim);
+    padding: 4px 12px;
+    border-radius: 4px;
+    cursor: pointer;
+    font-family: inherit;
+    font-size: 0.75rem;
+    transition: border-color 0.2s, color 0.2s;
+  }
+  #refresh-btn:hover {
+    border-color: var(--accent);
+    color: var(--accent);
+  }
+  #refresh-btn.spinning {
+    pointer-events: none;
+    opacity: 0.5;
+  }
+
+  /* Quote easter egg */
+  .portrait, .portrait-sm { cursor: pointer; user-select: none; }
+  #quote-overlay {
+    position: fixed;
+    inset: 0;
+    background: rgba(0, 0, 0, 0.72);
+    display: none;
+    align-items: center;
+    justify-content: center;
+    z-index: 1000;
+    opacity: 0;
+    transition: opacity 0.25s ease;
+    padding: 20px;
+  }
+  #quote-overlay.visible, #warn-overlay.visible { display: flex !important; opacity: 1 !important; }
+  .quote-box {
+    background: var(--card);
+    border: 1px solid var(--accent);
+    border-radius: 12px;
+    padding: 28px 32px;
+    max-width: 560px;
+    box-shadow: 0 8px 40px rgba(108, 140, 255, 0.25);
+    text-align: center;
+    transform: scale(0.96);
+    transition: transform 0.25s ease;
+  }
+  #quote-overlay.visible .quote-box { transform: scale(1); }
+  .quote-portrait {
+    width: 72px;
+    height: 72px;
+    border-radius: 50%;
+    object-fit: cover;
+    object-position: top;
+    border: 2px solid var(--accent);
+    margin-bottom: 14px;
+  }
+  .quote-text {
+    font-size: 1.02rem;
+    font-style: italic;
+    line-height: 1.5;
+    color: var(--text);
+    margin-bottom: 14px;
+  }
+  .quote-text::before { content: '\201C'; color: var(--accent); margin-right: 2px; }
+  .quote-text::after  { content: '\201D'; color: var(--accent); margin-left: 2px; }
+  .quote-author {
+    font-size: 0.78rem;
+    color: var(--text-dim);
+    text-transform: uppercase;
+    letter-spacing: 1.5px;
+  }
+
+  /* Warning dot */
+  .mini-card, .card { position: relative; }
+  .warn-dot {
+    position: absolute;
+    top: 8px;
+    right: 8px;
+    width: 10px;
+    height: 10px;
+    border-radius: 50%;
+    background: var(--red);
+    cursor: pointer;
+    border: 0;
+    padding: 0;
+    box-shadow: 0 0 0 0 rgba(244, 67, 54, 0.6);
+    animation: warn-pulse 1.6s infinite;
+    z-index: 5;
+  }
+  .warn-dot:hover { transform: scale(1.3); }
+  .mini-card .warn-dot { top: 6px; left: 6px; right: auto; }
+  @keyframes warn-pulse {
+    0%   { box-shadow: 0 0 0 0 rgba(244, 67, 54, 0.7); }
+    70%  { box-shadow: 0 0 0 8px rgba(244, 67, 54, 0); }
+    100% { box-shadow: 0 0 0 0 rgba(244, 67, 54, 0); }
+  }
+  .warn-box {
+    background: var(--card);
+    border: 1px solid var(--red);
+    border-radius: 12px;
+    padding: 22px 26px;
+    max-width: 520px;
+    box-shadow: 0 8px 40px rgba(244, 67, 54, 0.22);
+    text-align: left;
+    transform: scale(0.96);
+    transition: transform 0.25s ease;
+  }
+  #warn-overlay.visible .warn-box { transform: scale(1); }
+  .warn-title {
+    font-size: 1.02rem;
+    font-weight: 600;
+    color: var(--red);
+    margin-bottom: 6px;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+  .warn-sub {
+    font-size: 0.72rem;
+    color: var(--text-dim);
+    text-transform: uppercase;
+    letter-spacing: 1px;
+    margin-bottom: 14px;
+  }
+  .warn-item {
+    border-top: 1px solid var(--card-border);
+    padding: 10px 0 2px 0;
+    font-size: 0.82rem;
+  }
+  .warn-item:first-of-type { border-top: none; }
+  .warn-item .metric {
+    color: var(--red);
+    font-weight: 600;
+    margin-bottom: 2px;
+  }
+  .warn-item .suggest {
+    color: var(--text);
+    font-size: 0.78rem;
+    line-height: 1.45;
+  }
+  .warn-item .suggest code {
+    background: var(--bar-bg);
+    padding: 1px 5px;
+    border-radius: 3px;
+    font-size: 0.72rem;
+  }
+</style>
+</head>
+<body>
+<header>
+  <h1>Compute Monitor</h1>
+  <div style="display:flex;align-items:center;gap:16px;">
+    <button id="refresh-btn" onclick="fetchData()">Refresh</button>
+    <div id="status"><span class="dot"></span>Loading...</div>
+  </div>
+</header>
+<div id="quote-overlay" onclick="hideQuote()">
+  <div class="quote-box">
+    <img id="quote-portrait" class="quote-portrait" src="" alt="">
+    <div id="quote-text" class="quote-text"></div>
+    <div id="quote-author" class="quote-author"></div>
+  </div>
+</div>
+
+<div id="warn-overlay" onclick="hideWarnings()" style="position:fixed;inset:0;background:rgba(0,0,0,0.72);display:none;align-items:center;justify-content:center;z-index:1000;opacity:0;transition:opacity 0.25s ease;padding:20px;">
+  <div class="warn-box" onclick="event.stopPropagation()">
+    <div class="warn-title"><span>&#9888;</span><span id="warn-server-name"></span></div>
+    <div class="warn-sub">Overloaded &mdash; suggestions below</div>
+    <div id="warn-body"></div>
+  </div>
+</div>
+
+<div class="overview-title">Overview</div>
+<div class="overview" id="overview-grid"></div>
+
+<div class="overview-title" style="margin-top:8px;">Users</div>
+<div class="overview" id="user-grid"></div>
+
+<div class="overview-title" style="margin-top:8px;">Details</div>
+<div class="grid" id="server-grid"></div>
+
+<script>
+const REFRESH_INTERVAL = 30000; // 30s
+
+const QUOTES = {
+  ignatius: {
+    author: 'St. Ignatius of Loyola',
+    quotes: [
+      'Go forth and set the world on fire.',
+      'Pray as if everything depended on God, and work as if everything depended on you.',
+      'Teach us, good Lord, to serve thee as thou deservest; to give and not to count the cost.',
+      'He who carries God in his heart bears heaven with him wherever he goes.',
+      'There are very few men who realize what God would make of them if they abandoned themselves into his hands.',
+      'Laugh and grow strong.',
+      'To conquer oneself is a greater victory than to conquer thousands in a battle.',
+      'Love ought to show itself in deeds rather than in words.',
+      'We should speak sparingly and listen long.',
+      'The enemy of our human nature rejoices greatly when we lose courage.',
+      'All the things in this world are gifts of God, created for us, to be the means by which we can come to know him better.',
+      'He who goes about to reform the world must begin with himself.',
+      'For those who love, nothing is too difficult.',
+      'Man is created to praise, reverence, and serve God our Lord, and by this means to save his soul.',
+      'Take, Lord, and receive all my liberty, my memory, my understanding, and my entire will.',
+      'To give and not to count the cost; to fight and not to heed the wounds; to toil and not to seek for rest.',
+      'It is not abundance of knowledge that fills and satisfies the soul, but the intimate understanding and relish of the truth.',
+      'Suffer troubles patiently. Trust God more than yourself.',
+      'Grant me only your love and your grace, and I am rich enough, I have no further need.',
+      'The devil is afraid of us when we pray.',
+      'Consolation without a cause belongs solely to the Creator.',
+      'Little by little the good will become the best, the best the perfect.',
+      'Humility does not consist in thinking lowly of ourselves, but in thinking rightly of ourselves.',
+      'In times of desolation, never make a change.',
+      'Make obstacles the first step to greater merit.',
+      'Holy indifference is the foundation of all virtue.',
+      'Do today what you wish to have done at the hour of your death.',
+      'All is gift.',
+      'Those who wish to live like Christ must not fear tribulations.',
+      'I will do great things for the Lord, because I love him.',
+      'The spirit of God is not in noise.',
+      'We must go forward with discretion and prudence.',
+      'There is a joy in the Lord that no sorrow can equal.',
+      'Let us be on our guard against being wise in our own conceit.',
+      'Love consists in mutual sharing of goods.',
+      'Act always in such a way that, should you be taken from this life at the moment of acting, you would not have to be ashamed.',
+      'The more one is united to God, the greater his victories.',
+      'He who seeks God for his own sake is doubly blessed.',
+      'Man should make use of creatures so far as they help him toward his end, and withdraw from them so far as they hinder him.',
+      'God writes straight with crooked lines.',
+      'It is not the number of years that makes a man, but the use he makes of them.',
+      'Saint Francis is mine; I shall imitate him in everything.',
+      'Seek God in all things and we shall find God by our side.',
+      'Where obedience is, there is virtue; where virtue is, there are many good things.',
+      'Patience is the noblest of the virtues.',
+    ],
+  },
+  chesterton: {
+    author: 'G.K. Chesterton',
+    quotes: [
+      'The Christian ideal has not been tried and found wanting; it has been found difficult and left untried.',
+      'Angels can fly because they take themselves lightly.',
+      'Fairy tales do not tell children the dragons exist. Children already know that dragons exist. Fairy tales tell children the dragons can be killed.',
+      'The madman is not the man who has lost his reason. The madman is the man who has lost everything except his reason.',
+      'There is a road from the eye to the heart that does not go through the intellect.',
+      'The traveler sees what he sees, the tourist sees what he has come to see.',
+      'Merely having an open mind is nothing. The object of opening the mind, as of opening the mouth, is to shut it again on something solid.',
+      'Without education, we are in a horrible and deadly danger of taking educated people seriously.',
+      'To love means loving the unlovable. To forgive means pardoning the unpardonable. Faith means believing the unbelievable. Hope means hoping when everything seems hopeless.',
+      'The whole modern world has divided itself into Conservatives and Progressives. The business of Progressives is to go on making mistakes. The business of Conservatives is to prevent the mistakes from being corrected.',
+      'There are no uninteresting things, only uninterested people.',
+      'An adventure is only an inconvenience rightly considered. An inconvenience is only an adventure wrongly considered.',
+      'The true soldier fights not because he hates what is in front of him, but because he loves what is behind him.',
+      'A dead thing can go with the stream, but only a living thing can go against it.',
+      'The poor have sometimes objected to being governed badly; the rich have always objected to being governed at all.',
+      'Poetry is sane because it floats easily in an infinite sea; reason seeks to cross the infinite sea, and so make it finite.',
+      'Thieves respect property. They merely wish the property to become their property that they may more perfectly respect it.',
+      'Men do not differ much about what things they will call evils; they differ enormously about what evils they will call excusable.',
+      'Tradition means giving a vote to the most obscure of all classes, our ancestors. It is the democracy of the dead.',
+      'A good novel tells us the truth about its hero; but a bad novel tells us the truth about its author.',
+      'Journalism largely consists in saying Lord Jones died to people who never knew Lord Jones was alive.',
+      'The object of a new year is not that we should have a new year. It is that we should have a new soul.',
+      'The most extraordinary thing in the world is an ordinary man and an ordinary woman and their ordinary children.',
+      'A good riddle is quite as reasonable as a good answer.',
+      'Happy is he who still loves something he loved in the nursery.',
+      'It isn\u2019t that they can\u2019t see the solution. It is that they can\u2019t see the problem.',
+      'The word "good" has many meanings. For example, if a man were to shoot his grandmother at a range of five hundred yards, I should call him a good shot, but not necessarily a good man.',
+      'There are two ways of getting home; and one of them is to stay there.',
+      'When it comes to life, the critical thing is whether you take things for granted or take them with gratitude.',
+      'The most incredible thing about miracles is that they happen.',
+      'The way to love anything is to realize that it might be lost.',
+      'When we were children we were grateful to those who filled our stockings at Christmas time. Why are we not grateful to God for filling our stockings with legs?',
+      'America is the only nation in the world that is founded on a creed.',
+      'Art, like morality, consists of drawing the line somewhere.',
+      'Anything worth doing is worth doing badly.',
+      'Christianity has died many times and risen again; for it had a God who knew the way out of the grave.',
+      'The riddles of God are more satisfying than the solutions of man.',
+      'The men who really believe in themselves are all in lunatic asylums.',
+      'He is a sane man who can have tragedy in his heart and comedy in his head.',
+      'The center of every man\u2019s existence is a dream.',
+      'Literature is a luxury; fiction is a necessity.',
+      'If there were no God, there would be no atheists.',
+      'Progress should mean that we are always changing the world to fit the vision. Instead, we are always changing the vision.',
+      'The whole truth is generally the ally of virtue; a half-truth is always the ally of some vice.',
+      'Courage is almost a contradiction in terms. It means a strong desire to live taking the form of a readiness to die.',
+      'The whole point of education is that it should give a man abstract and eternal standards, by which he can judge material and fugitive conditions.',
+      'Custom is our nature; and the nature of nature is custom.',
+      'There are only two kinds of people: those who accept dogma and know it, and those who accept dogma and don\u2019t know it.',
+      'Drink because you are happy, but never because you are miserable.',
+      'The human race, to which so many of my readers belong, has been playing at children\u2019s games from the beginning, and will probably do it till the end.',
+      'Art is born when the temporary touches the eternal.',
+      'In prosperity our friends know us; in adversity we know our friends.',
+      'The real great man is the man who makes every man feel great.',
+      'A puritan\u2019s a person who pours righteous indignation into the wrong things.',
+      'All science, even the divine science, is a sublime detective story.',
+      'Every high civilization decays by forgetting obvious things.',
+      'The family is the test of freedom; because the family is the only thing that the free man makes for himself and by himself.',
+      'Marriage is an adventure, like going to war.',
+      'Moderate strength is shown in violence, supreme strength is shown in levity.',
+      'Music with dinner is an insult both to the cook and to the violinist.',
+      'One sees great things from the valley; only small things from the peak.',
+      'The act of defending any of the cardinal virtues has today all the exhilaration of a vice.',
+      'The Bible tells us to love our neighbors, and also to love our enemies; probably because they are generally the same people.',
+      'The more I considered Christianity, the more I found that while it had established a rule and order, the chief aim of that order was to give room for good things to run wild.',
+      'We are all in the same boat in a stormy sea, and we owe each other a terrible loyalty.',
+      'The chief object of education is not to learn things but to unlearn things.',
+      'A man is angry at a libel because it is false, but at a satire because it is true.',
+      'Most modern freedom is at root fear.',
+      'There is nothing the matter with Americans except their ideals. The real American is all right; it is the ideal American who is all wrong.',
+      'The paradox of courage is that a man must be a little careless of his life even in order to keep it.',
+      'Fables are more than moralities; the morality of a fable may be less than the truth.',
+      'There are no rules of architecture for a castle in the clouds.',
+      'It is not bigotry to be certain we are right; but it is bigotry to be unable to imagine how we might possibly have gone wrong.',
+      'The simplification of anything is always sensational.',
+      'Education is simply the soul of a society as it passes from one generation to another.',
+      'All men are ordinary men; the extraordinary men are those who know it.',
+      'Reason is always a kind of brute force; those who appeal to the head rather than the heart, however pallid and polite, are necessarily men of violence.',
+      'The modern world is not evil; in some ways the modern world is far too good.',
+      'Do not free a camel of the burden of his hump; you may be freeing him from being a camel.',
+      'The vulgar are more influenced by names than by things.',
+      'Every man who knocks on the door of a brothel is looking for God.',
+      'Impartiality is a pompous name for indifference, which is an elegant name for ignorance.',
+      'Literature is a luxury; fiction is a necessity.',
+      'The worst moment for the atheist is when he is really thankful and has nobody to thank.',
+      'Music is the sound of the sky laughing.',
+      'The hypocrite is right only by accident.',
+      'The function of the imagination is not to make strange things settled, so much as to make settled things strange.',
+      'If a thing is worth doing, it is worth doing badly.',
+      'The great painter boldly puts his paint upon the canvas; the great poet upon the page.',
+      'The Bible, like nature, has only one defense against those who misuse it: it can be read again.',
+      'In a large sense, education is the soul of a society as it passes from one generation to another.',
+      'The reformer is always right about what is wrong. He is generally wrong about what is right.',
+      'To have a right to do a thing is not at all the same as to be right in doing it.',
+      'The true object of all human life is play. Earth is a task garden; heaven is a playground.',
+      'Once abolish the God, and the government becomes the God.',
+      'The Christian does not think God will love us because we are good, but that God will make us good because He loves us.',
+      'A thing worth having is a thing worth cheating for.',
+      'Man seems to be capable of great virtues but not of small virtues; capable of defying his torturer but not of keeping his temper.',
+      'There is a great deal of difference between an eager man who wants to read a book and a tired man who wants a book to read.',
+      'An inconvenience is only an adventure wrongly considered.',
+      'We are perishing for want of wonder, not for want of wonders.',
+      'Art has to move you and design does not, unless it is a good design for a bus.',
+      'Yes, there is a road from the eye to the heart that does not go through the intellect.',
+      'Hope means hoping when everything is hopeless, or it is no virtue at all.',
+    ],
+  },
+  aquinas: {
+    author: 'St. Thomas Aquinas',
+    quotes: [
+      'To one who has faith, no explanation is necessary. To one without faith, no explanation is possible.',
+      'Beware the person of a single book.',
+      'Wonder is the desire for knowledge.',
+      'The things that we love tell us what we are.',
+      'There is nothing on this earth more to be prized than true friendship.',
+      'Sorrow can be alleviated by good sleep, a bath and a glass of wine.',
+      'If, then, you are looking for the way by which you should go, take Christ, because he himself is the way.',
+      'Three things are necessary for the salvation of man: to know what he ought to believe; to know what he ought to desire; and to know what he ought to do.',
+      'Faith has to do with things that are not seen and hope with things that are not at hand.',
+      'Love takes up where knowledge leaves off.',
+      'Grace presupposes nature, and perfects it.',
+      'We can\u2019t have full knowledge all at once. We must start by believing; then afterwards we may be led on to master the evidence for ourselves.',
+      'Better to illuminate than merely to shine, to deliver to others contemplated truths than merely to contemplate.',
+      'A man has free choice to the extent that he is rational.',
+      'Charity is the form of all the virtues.',
+      'It is requisite for the relaxation of the mind that we make use, from time to time, of playful deeds and jokes.',
+      'Man cannot live without joy; therefore when he is deprived of true spiritual joys it is necessary that he become addicted to carnal pleasures.',
+      'Law is nothing other than a certain ordinance of reason for the common good, promulgated by the person who has the care of the community.',
+      'Reason in man is rather like God in the world.',
+      'All that is true, by whomsoever it has been said, has its origin in the Spirit.',
+      'The test of the artist does not lie in the will with which he goes to work, but in the excellence of the work he produces.',
+      'Happiness is secured through virtue; it is a good attained by man\u2019s own will.',
+      'By nature all men are equal in liberty, but not in other endowments.',
+      'The highest manifestation of life consists in this: that a being governs its own actions.',
+      'Every judgment of conscience, be it right or wrong, be it about things evil in themselves or morally indifferent, is obligatory.',
+      'He who is not angry when there is just cause for anger is immoral.',
+      'Most men seem to live according to sense rather than reason.',
+      'There is no greater perfection than the truth.',
+      'To bear with patience wrongs done to oneself is a mark of perfection, but to bear with patience wrongs done to someone else is a mark of imperfection.',
+      'The knowledge of God is the cause of things.',
+      'If the highest aim of a captain were to preserve his ship, he would keep it in port forever.',
+      'Good can exist without evil, whereas evil cannot exist without good.',
+      'Not everything that is more difficult is more meritorious.',
+      'Perfection of moral virtue does not wholly take away the passions, but regulates them.',
+      'Truth is the conformity of the intellect to the thing.',
+      'Friendship is the source of the greatest pleasures, and without friends even the most agreeable pursuits become tedious.',
+      'It is clear that he does not pray, who, far from uplifting himself to God, requires that God should lower himself to him.',
+      'Fear is such a powerful emotion that when we allow it to take us over, it drives compassion right out of our hearts.',
+      'In the sciences, one can have no better guide than truth.',
+      'The proper effect of the Eucharist is the transformation of man into God.',
+      'Love follows knowledge.',
+      'Well-ordered self-love is right and natural.',
+      'The study of philosophy is not that we may know what men have thought, but what is the truth of things.',
+      'Whatever is received is received according to the nature of the recipient.',
+      'Nothing is in the intellect that was not first in the senses.',
+      'The highest unity is charity.',
+      'Man has a natural desire to know.',
+      'There are three things that cure the sadness of the soul: sleep, a bath, and a friend.',
+      'Contemplation is the enjoyment of God.',
+      'To love is to will the good of another.',
+      'Happiness consists in an operation of the speculative intellect.',
+      'God is his own existence.',
+      'The natural law is nothing other than the rational creature\u2019s participation in the eternal law.',
+      'Man is not disposed for virtue by a single act.',
+      'Man finds his full happiness only in God.',
+      'Beauty requires three things: integrity, proportion, and clarity.',
+      'As sailors are guided into port by the shining of a star, so Christians are guided to heaven by Mary.',
+      'The glory of God is the end of all our actions.',
+      'Perfect love has no room for fear.',
+      'Every being as being is good.',
+      'In this life, knowledge depends on faith.',
+      'To live well is to work well, to show a good activity.',
+      'Whatever exists bears witness to God.',
+      'Wisdom is knowledge of divine things.',
+      'Evil is not a being, but a privation of being.',
+      'Knowledge is the image of truth.',
+      'Mercy is the fullness of justice.',
+      'The human soul is the form of the body.',
+      'The goal of war is peace.',
+      'Love is the unitive force.',
+      'Nothing great is accomplished without passion.',
+      'God brings us good even out of evil.',
+      'God is the source of all light.',
+      'Man is a creature of the spirit as well as of the flesh.',
+      'Temperance is simply a disposition of the mind which binds the passions.',
+      'The soul is known by its acts.',
+      'Friendship is the fount from which the Christian life flows.',
+      'Hope presupposes love.',
+      'Grace does not destroy nature but perfects it.',
+      'To convert somebody go and take them by the hand and guide them.',
+      'How is it possible that God loves me when I am so imperfect? Because he sees what I can become.',
+      'The existence of God can be proved in five ways.',
+      'Pange lingua gloriosi corporis mysterium.',
+      'Adoro te devote, latens Deitas \u2014 Godhead here in hiding, whom I do adore.',
+      'He who denies the existence of God has some reason for wishing that God did not exist.',
+      'The order of things predicated of God is the same as the order of our knowledge.',
+      'All speech about God must proceed by way of analogy.',
+      'In God alone is His nature identical with His existence.',
+      'The will is moved by the good.',
+      'Faith is a habit of the mind, whereby eternal life is begun in us.',
+      'Hope is a movement of the appetite towards a future good.',
+      'Charity is friendship with God.',
+      'Prayer is an act of the practical reason.',
+      'Just as it is better to enlighten than merely to shine, so to hand on what one has contemplated is better than merely to contemplate.',
+      'Not all that is possible to God is possible to nature.',
+      'We can will the impossible, but not choose it.',
+      'Ignorance of ends does not excuse.',
+      'Every agent acts for an end.',
+      'All knowledge worth having begins in wonder.',
+      'The diversity of things expresses the one goodness of God.',
+      'No man can live without delight.',
+      'He who wills the end wills the means.',
+      'Omnia mea mecum porto \u2014 the wise man carries his goods with himself.',
+      'If we follow Christ closely, we shall arrive at the goal.',
+      'In the realm of grace, God is the whole reward.',
+    ],
+  },
+  origen: {
+    author: 'Origen of Alexandria',
+    quotes: [
+      'The power of choosing good and evil is within the reach of all.',
+      'The sacred Scriptures have a body, a soul, and a spirit.',
+      'Prayer is conversation with God.',
+      'To be able to neglect one\u2019s reputation is a great thing.',
+      'The Word of God is like a ray of the sun piercing the darkness.',
+      'We must not be content to have the truth; we must do the truth.',
+      'Only those who have received the spirit of adoption can understand the Scriptures.',
+      'As our body without the spirit is dead, so Scripture, if we look at it only in its bodily aspect, is dead.',
+      'The Gospels are the first-fruits of all the Scriptures.',
+      'Every soul that has attained the purity of virginity is able to give birth to the Word in purity of heart.',
+      'Every soul that approaches God must first be purged.',
+      'The holy Scriptures do not exhibit themselves in their true majesty to the indolent and sluggish.',
+      'Jesus knocks at every door, and there is no soul he does not visit.',
+      'Where there is sin, there is multiplicity.',
+      'Understanding Scripture is a gift of the Holy Spirit.',
+      'All evil is a deprivation of good.',
+      'He who does not prevail over the beasts of his passions cannot rightly understand the word of God.',
+      'The soul is a mirror, and the image reflected in it is God.',
+      'God is both fire and light \u2014 the fire that burns away our sin and the light that shows us his way.',
+      'The book of Psalms contains the whole of Scripture in little.',
+      'The law has been given as a schoolmaster to lead us to Christ.',
+      'There is no soul so lost that the divine mercy cannot reach it.',
+      'We ought not imagine that God has human form.',
+      'The rational creature has been made after the image and likeness of God.',
+      'Scripture is an ocean of mysteries.',
+      'Christ is crucified in every sinner.',
+      'The Church is the body of Christ, animated by the Holy Spirit.',
+      'When you read Scripture, do not wish only to understand what is said, but to practice what is said.',
+      'The martyrs witness not only with their blood, but with their whole life.',
+      'Our works are a prayer to God.',
+      'Every virtue is a kind of beauty of the soul.',
+      'He who wishes to pray must never cease to pray.',
+      'The Word ever becomes flesh in the souls that receive him.',
+      'God\u2019s pedagogy descends to the level of each learner.',
+      'Knowledge of Christ is the beginning of happiness.',
+      'A good conscience is a continual feast.',
+    ],
+  },
+  augustine: {
+    author: 'St. Augustine of Hippo',
+    quotes: [
+      'Thou hast made us for thyself, O Lord, and our heart is restless until it finds rest in thee.',
+      'Faith is to believe what you do not see; the reward of this faith is to see what you believe.',
+      'Love, and do what you will.',
+      'Patience is the companion of wisdom.',
+      'Humility is the foundation of all the other virtues.',
+      'God had one Son on earth without sin, but never one without suffering.',
+      'Give me chastity and continence, but not yet.',
+      'Late have I loved thee, O Beauty ever ancient, ever new, late have I loved thee.',
+      'Thou wast with me, but I was not with thee.',
+      'What is time? If no one asks me, I know; if I wish to explain it to one who asks, I know not.',
+      'My weight is my love; by it I am borne wheresoever I am borne.',
+      'Hope has two beautiful daughters; their names are Anger and Courage. Anger at the way things are, and Courage to see that they do not remain as they are.',
+      'There is no saint without a past, no sinner without a future.',
+      'Complete abstinence is easier than perfect moderation.',
+      'Charity is no substitute for justice withheld.',
+      'The measure of love is to love without measure.',
+      'Men go abroad to wonder at the heights of mountains, the huge waves of the sea, the long courses of rivers, and they pass by themselves without wondering.',
+      'God loves each of us as if there were only one of us.',
+      'Right is right even if no one is doing it; wrong is wrong even if everyone is doing it.',
+      'To fall in love with God is the greatest romance; to seek him the greatest adventure; to find him, the greatest human achievement.',
+      'Seek not to understand that you may believe, but believe that you may understand.',
+      'He who sings prays twice.',
+      'In the Old Testament the New is concealed; in the New the Old is revealed.',
+      'Christ is not valued at all unless he is valued above all.',
+      'The Bible was composed in such a way that as beginners mature, its meaning grows with them.',
+      'Pride changed angels into devils; it is humility that makes men as angels.',
+      'Indeed, man wishes to be happy even when he so lives as to make happiness impossible.',
+      'If we live good lives, the times are also good. As we are, such are the times.',
+      'You plan a tower that will pierce the clouds? Lay first the foundation of humility.',
+      'Understanding is the reward of faith.',
+      'You aspire to great things? Begin with little ones.',
+      'The confession of evil works is the first beginning of good works.',
+      'What does love look like? It has hands to help others, feet to hasten to the poor and needy, eyes to see misery and want, ears to hear the sighs and sorrows of men.',
+      'Man is a great depth, O Lord. The hairs of his head are easier by far to count than his feelings.',
+      'Peace is not sought in order to the kindling of war, but war is waged in order that peace may be obtained.',
+      'Find out how much God has given you, and from it take what you need; the remainder is needed by others.',
+      'If you believe what you like in the gospels, and reject what you don\u2019t like, it is not the gospel you believe, but yourself.',
+      'Tolle, lege \u2014 take up and read.',
+      'An unjust law is no law at all.',
+      'He who is filled with love is filled with God himself.',
+      'The Christian should be an alleluia from head to foot.',
+      'Do you believe? Then do as you believe.',
+      'What is done out of love always takes place beyond good and evil.',
+      'Our whole business in this life is to restore to health the eye of the heart, whereby God may be seen.',
+      'This is the very perfection of a man, to find out his own imperfections.',
+      'Miracles are not contrary to nature, but only contrary to what we know about nature.',
+      'Do you wish to conquer the world? Then conquer yourself first.',
+      'Better to limp along the way than to stride along off the way.',
+      'Will is to grace as the horse is to the rider.',
+      'If you are suffering from a bad man\u2019s injustice, forgive him lest there be two bad men.',
+      'Before God can deliver us, we must undeceive ourselves.',
+      'God judged it better to bring good out of evil than to suffer no evil to exist.',
+      'He who created you without your cooperation will not save you without your cooperation.',
+      'He who is good is free, though he is a slave; he who is evil is a slave, though he be a king.',
+      'Thou didst call, and shout, and burst my deafness.',
+      'Thou didst touch me, and I am on fire for thy peace.',
+      'Credo ut intelligam \u2014 I believe in order to understand.',
+      'The happy life is joy based on the truth.',
+      'Never fight evil as if it were something that arose totally outside of yourself.',
+      'Since you cannot do good to all, you are to pay special regard to those who, by the accidents of time or place or circumstance, are brought into closer connection with you.',
+      'Love is itself the fulfillment of all our works.',
+      'If you wish to attain what you do not yet believe, believe what you do not yet see, and you will attain the vision of what you now believe.',
+      'Learn the heart of God in the words of God.',
+      'Habit, if not resisted, soon becomes necessity.',
+      'He loves thee too little who loves anything together with thee, which he loves not for thy sake.',
+      'Do you suppose any man ever reaches this peace? No, unless he first wages war with himself.',
+      'All shall be Amen and Alleluia. We shall rest and we shall see. We shall see and we shall know. We shall know and we shall love.',
+      'A thing is not necessarily true because badly uttered, nor false because spoken magnificently.',
+      'Conquer yourself and the world lies at your feet.',
+      'Grant what thou commandest, and command what thou wilt.',
+      'There is no love without hope, no hope without love, and neither love nor hope without faith.',
+      'God always pours his grace into empty hands.',
+      'In the house of God there is never ending festival.',
+      'The soul feeds on that in which it takes delight.',
+      'Nothing conquers except truth, and the victory of truth is love.',
+      'I found thee not, O Lord, without, because I erred in seeking thee without that wert within.',
+      'Thou didst breathe fragrant odors, and I drew in my breath; and now I pant for thee.',
+      'The person who does not know Christ does not know himself.',
+      'Narrow is the mansion of my soul; enlarge thou it, that thou mayest enter in.',
+      'A thing is not beautiful because we love it; we love it because it is beautiful.',
+      'Beauty grows in you to the extent that love grows, because charity itself is the soul\u2019s beauty.',
+      'The truth is I do not love thee, and yet I love thee.',
+      'Love is the beauty of the soul.',
+      'Man stands in awe of mountains and yet passes by himself without wonder.',
+      'Why does truth beget hatred?',
+      'To abstain from sin when a man cannot sin is to be forsaken by sin, not to forsake it.',
+      'Man is one of thy creatures, Lord, and his instinct is to praise thee.',
+      'Thou, O Lord, art my true life.',
+      'Conscience and reputation are two things. Conscience is due to yourself, reputation to your neighbor.',
+      'In every human being there is a desire for happiness and a hatred of misery.',
+      'The very pleasures of human life men acquire by difficulties.',
+      'We make ourselves a ladder out of our vices if we trample those vices underfoot.',
+      'The verb to love in Latin is amare, from which comes amicitia, friendship.',
+      'The crown will not be given except to the victor; may he who strives mightily be crowned.',
+      'Trust the past to God\u2019s mercy, the present to God\u2019s love, and the future to God\u2019s providence.',
+      'He fled from thee, and yet thou didst follow him.',
+      'Every disordered soul is its own punishment.',
+      'Rightly is he condemned by God who has had God for a teacher, and has refused to learn.',
+      'Though we cannot measure, we ought to love without measure.',
+      'The soul in its ascent first loves itself, then its neighbor, and at last God.',
+      'Our very righteousness, true as it is, is yet in this life of such a kind that it consists rather in the remission of sins than in the perfecting of virtues.',
+      'There is no possible source of evil except good.',
+      'Let us therefore give thanks not only for what God has given us, but for what he has taken away.',
+      'Seek what you are seeking, but it is not where you are seeking it.',
+      'Where your pleasure is, there is your treasure; where your treasure, there your heart; where your heart, there your happiness.',
+    ],
+  },
+};
+
+function showQuote(serverName) {
+  const entry = QUOTES[serverName];
+  if (!entry) return;
+  const q = entry.quotes[Math.floor(Math.random() * entry.quotes.length)];
+  const server = (window.__lastServers || []).find(s => s.name === serverName);
+  const img = server && server.img ? `/static/img/${server.img}` : '';
+  document.getElementById('quote-portrait').src = img;
+  document.getElementById('quote-text').textContent = q;
+  document.getElementById('quote-author').textContent = entry.author;
+  document.getElementById('quote-overlay').classList.add('visible');
+}
+
+function hideQuote() {
+  document.getElementById('quote-overlay').classList.remove('visible');
+}
+
+document.addEventListener('keydown', e => { if (e.key === 'Escape') { hideQuote(); hideWarnings(); } });
+
+function getWarnings(s) {
+  if (!s || s.error) return [];
+  const warnings = [];
+  const ramPct = s.ram ? s.ram.pct : 0;
+  const diskPct = s.disk && s.disk.pct ? parseInt(s.disk.pct) : 0;
+
+  if (ramPct >= 95) {
+    warnings.push({
+      metric: `RAM at ${Math.round(ramPct)}% (${(s.ram.used_mb/1024).toFixed(1)}G / ${(s.ram.total_mb/1024).toFixed(1)}G)`,
+      suggest: 'Imminent OOM \u2014 the kernel may start killing processes (possibly sshd or system services, which can lock the node). Find the hog with <code>ps aux --sort=-%rss | head</code> and kill idle Python/Jupyter kernels now.',
+    });
+  }
+  if (diskPct >= 97) {
+    warnings.push({
+      metric: `Disk / at ${diskPct}% (${s.disk.used} / ${s.disk.size})`,
+      suggest: 'Root disk nearly full \u2014 at 100% system services (journald, sshd login, package managers) start failing and the node can become unreachable. Free space fast: <code>du -sh ~/.cache/* | sort -h</code>, delete old checkpoints, <code>docker system prune -a</code>.',
+    });
+  }
+  for (const g of (s.gpus || [])) {
+    if (g.temp_c >= 90) {
+      warnings.push({
+        metric: `GPU ${g.index} at ${g.temp_c}&deg;C`,
+        suggest: 'Approaching thermal shutdown (~95\u00b0C). The card will fall off the bus and any job using it will hang, sometimes hanging the driver. Stop jobs on this GPU, check airflow, and cap power with <code>nvidia-smi -i ' + g.index + ' -pl &lt;watts&gt;</code>.',
+      });
+    }
+  }
+  return warnings;
+}
+
+function showWarnings(serverName) {
+  const s = (window.__lastServers || []).find(x => x.name === serverName);
+  if (!s) return;
+  const warnings = getWarnings(s);
+  if (!warnings.length) return;
+  document.getElementById('warn-server-name').textContent = serverName;
+  document.getElementById('warn-body').innerHTML = warnings.map(w =>
+    `<div class="warn-item"><div class="metric">${w.metric}</div><div class="suggest">${w.suggest}</div></div>`
+  ).join('');
+  document.getElementById('warn-overlay').classList.add('visible');
+}
+
+function hideWarnings() {
+  document.getElementById('warn-overlay').classList.remove('visible');
+}
+
+const USER_MAP = {
+  'gonzc11':  { display: 'Carlos',  img: 'gonzc11.png' },
+  'shik2':    { display: 'Kaiwen',  img: 'kaiwen.png' },
+  'wangx86':  { display: 'Allen',   img: 'xwang.png' },
+  'vanderw':  { display: 'Will',    img: 'vanderw.jpg' },
+  'butzk':    { display: 'Luka',    img: 'luka.jpg' },
+};
+
+function fillClass(pct) {
+  if (pct < 60) return 'fill-low';
+  if (pct < 85) return 'fill-mid';
+  return 'fill-high';
+}
+
+function fmtMem(mb) {
+  if (mb >= 1024) return (mb / 1024).toFixed(1) + ' GB';
+  return mb + ' MB';
+}
+
+function barHtml(label, pct, detail) {
+  return `<div class="bar-row">
+    <span class="bar-label">${label}</span>
+    <div class="bar-wrap"><div class="bar-fill ${fillClass(pct)}" style="width:${pct}%"></div></div>
+    <span class="bar-value">${detail}</span>
+  </div>`;
+}
+
+function renderServer(s) {
+  if (s.error) {
+    const offImg = s.img ? `<img class="portrait" src="/static/img/${s.img}" alt="${s.name}" ondblclick="showQuote('${s.name}')" title="Double-click me">` : '';
+    return `<div class="card offline">
+      <div class="card-header">
+        <div style="display:flex;align-items:center;gap:10px;">
+          ${offImg}
+          <div><h2>${s.name}</h2><span class="desc">${s.desc || ''}</span></div>
+        </div>
+        <span class="badge offline-badge">OFFLINE</span>
+      </div>
+      <div class="error-msg">${s.error}</div>
+    </div>`;
+  }
+
+  const imgTag = s.img ? `<img class="portrait" src="/static/img/${s.img}" alt="${s.name}" ondblclick="showQuote('${s.name}')" title="Double-click me">` : '';
+  const warnings = getWarnings(s);
+  const warnDot = warnings.length ? `<button class="warn-dot" onclick="event.stopPropagation(); showWarnings('${s.name}')" title="${warnings.length} warning${warnings.length>1?'s':''} \u2014 click for suggestions"></button>` : '';
+
+  let html = `<div class="card">
+    ${warnDot}
+    <div class="card-header">
+      <div style="display:flex;align-items:center;gap:10px;">
+        ${imgTag}
+        <div>
+          <h2>${s.name}</h2>
+          <span class="desc">${s.desc}</span>
+        </div>
+      </div>
+      <span class="badge">ONLINE</span>
+    </div>`;
+
+  // Quick stats
+  const loadPct = s.cpu_count ? Math.min(100, Math.round(s.load['1m'] / s.cpu_count * 100)) : 0;
+  html += `<div class="stats-row">
+    <span class="stat">CPUs: <span class="val">${s.cpu_count}</span></span>
+    <span class="stat">Load: <span class="val">${s.load['1m'].toFixed(1)}</span> / ${s.cpu_count}</span>
+    <span class="stat">Up: <span class="val">${s.uptime}</span></span>
+  </div>`;
+
+  // RAM bar
+  html += `<div class="section-label">Memory</div>`;
+  html += barHtml('RAM', s.ram.pct, `${fmtMem(s.ram.used_mb)} / ${fmtMem(s.ram.total_mb)}`);
+
+  // CPU load bar
+  html += barHtml('CPU Load', loadPct, `${s.load['1m'].toFixed(1)} avg`);
+
+  // Disk
+  if (s.disk && s.disk.pct) {
+    html += barHtml('Disk /', parseInt(s.disk.pct), `${s.disk.used} / ${s.disk.size}`);
+  }
+
+  // GPUs
+  if (s.gpus && s.gpus.length > 0) {
+    html += `<div class="section-label">GPUs</div>`;
+    for (const g of s.gpus) {
+      html += barHtml(
+        `GPU ${g.index}`,
+        g.mem_pct,
+        `${fmtMem(g.mem_used_mb)} / ${fmtMem(g.mem_total_mb)}`
+      );
+      html += `<div style="display:flex;gap:12px;margin:-2px 0 4px 88px;">
+        <span class="gpu-temp">Util: ${g.util_pct}%</span>
+        <span class="gpu-temp">Temp: ${g.temp_c}&deg;C</span>
+      </div>`;
+    }
+  }
+
+  // GPU processes
+  if (s.gpu_processes && s.gpu_processes.length > 0) {
+    html += `<div class="section-label">GPU Processes</div>`;
+    html += `<table class="proc-table"><tr><th>User</th><th>GPU Mem</th><th>Command</th></tr>`;
+    for (const p of s.gpu_processes) {
+      html += `<tr>
+        <td>${p.user}</td>
+        <td>${p.gpu_mem_mb} MB</td>
+        <td title="${esc(p.command)}">${esc(p.command)}</td>
+      </tr>`;
+    }
+    html += `</table>`;
+  }
+
+  // Top CPU processes
+  if (s.top_processes && s.top_processes.length > 0) {
+    html += `<div class="section-label">Top Processes (by CPU)</div>`;
+    html += `<table class="proc-table"><tr><th>User</th><th>CPU%</th><th>Mem%</th><th>Command</th></tr>`;
+    const shown = s.top_processes.slice(0, 8);
+    for (const p of shown) {
+      html += `<tr>
+        <td>${p.user}</td>
+        <td>${p.cpu_pct}</td>
+        <td>${p.mem_pct}</td>
+        <td title="${esc(p.command)}">${esc(p.command)}</td>
+      </tr>`;
+    }
+    html += `</table>`;
+  }
+
+  // Logged-in users
+  if (s.logged_in_users && s.logged_in_users.length > 0) {
+    const names = [...new Set(s.logged_in_users.map(u => u.user))];
+    html += `<div class="section-label">Logged In</div>`;
+    html += `<div class="users-list">${names.map(n => `<span>${n}</span>`).join(', ')}</div>`;
+  }
+
+  html += `</div>`;
+  return html;
+}
+
+function aggregateUsers(servers) {
+  // user -> { servers: { serverName: { gpu_mem_mb, cpu_pct, mem_pct, procs: [...] } }, totals }
+  const users = {};
+
+  for (const s of servers) {
+    if (s.error) continue;
+
+    // GPU processes
+    for (const p of (s.gpu_processes || [])) {
+      const u = p.user;
+      if (!u) continue;
+      if (!users[u]) users[u] = { servers: {} };
+      if (!users[u].servers[s.name]) users[u].servers[s.name] = { gpu_mem_mb: 0, cpu_pct: 0, procs: [] };
+      users[u].servers[s.name].gpu_mem_mb += parseInt(p.gpu_mem_mb) || 0;
+      users[u].servers[s.name].procs.push(p.command || '');
+    }
+
+    // Top CPU processes
+    for (const p of (s.top_processes || [])) {
+      const u = p.user;
+      if (!u || u === 'root' || u === 'avahi' || u.startsWith('setroub') || u === 'polkitd' || u === 'dbus') continue;
+      if (!users[u]) users[u] = { servers: {} };
+      if (!users[u].servers[s.name]) users[u].servers[s.name] = { gpu_mem_mb: 0, cpu_pct: 0, procs: [] };
+      users[u].servers[s.name].cpu_pct += parseFloat(p.cpu_pct) || 0;
+    }
+  }
+
+  // Build sorted array, known users first
+  const known = Object.keys(USER_MAP);
+  const result = [];
+  for (const u of known) {
+    if (users[u]) result.push({ username: u, ...users[u] });
+  }
+  for (const u of Object.keys(users).sort()) {
+    if (!known.includes(u)) result.push({ username: u, ...users[u] });
+  }
+  return result;
+}
+
+function renderUserCard(u) {
+  const info = USER_MAP[u.username] || { display: u.username, img: null };
+  const imgTag = info.img
+    ? `<img class="user-portrait" src="/static/img/${info.img}" alt="${info.display}">`
+    : `<div class="user-portrait" style="background:var(--bar-bg);display:flex;align-items:center;justify-content:center;font-size:0.8rem;font-weight:600;">${info.display[0]}</div>`;
+
+  let totalGpu = 0;
+  let totalCpu = 0;
+  let serverCount = Object.keys(u.servers).length;
+
+  let rows = '';
+  for (const [srv, data] of Object.entries(u.servers)) {
+    totalGpu += data.gpu_mem_mb;
+    totalCpu += data.cpu_pct;
+    const parts = [];
+    if (data.gpu_mem_mb > 0) parts.push(`GPU: ${fmtMem(data.gpu_mem_mb)}`);
+    if (data.cpu_pct > 0) parts.push(`CPU: ${Math.round(data.cpu_pct)}%`);
+    if (parts.length > 0) {
+      rows += `<div class="user-server-row">
+        <span class="srv-name">${srv}</span>
+        <span class="srv-detail">${parts.join(' &middot; ')}</span>
+      </div>`;
+    }
+  }
+
+  if (!rows) return '';
+
+  return `<div class="user-card">
+    <div class="user-card-header">
+      ${imgTag}
+      <div>
+        <div class="uc-name">${info.display}</div>
+        <div class="uc-user">${u.username}</div>
+      </div>
+    </div>
+    ${rows}
+    <div class="user-totals">
+      <span>${serverCount} server${serverCount > 1 ? 's' : ''}</span>
+      ${totalGpu > 0 ? `<span>GPU: <span class="val">${fmtMem(totalGpu)}</span></span>` : ''}
+      ${totalCpu > 0 ? `<span>CPU: <span class="val">${Math.round(totalCpu)}%</span></span>` : ''}
+    </div>
+  </div>`;
+}
+
+function renderMiniCard(s, idx) {
+  if (s.error) {
+    const miniOffImg = s.img ? `<img class="portrait-sm" src="/static/img/${s.img}" alt="${s.name}" onclick="event.stopPropagation()" ondblclick="event.stopPropagation(); showQuote('${s.name}')" title="Double-click me">` : '';
+    return `<div class="mini-card offline" onclick="scrollToServer(${idx})">
+      ${miniOffImg}
+      <div class="mc-name">${s.name}</div>
+      <div class="mc-desc">${s.desc || ''}</div>
+      <div style="font-size:0.7rem;color:var(--red);">OFFLINE</div>
+    </div>`;
+  }
+
+  const cpuPct = s.cpu_count ? Math.min(100, Math.round(s.load['1m'] / s.cpu_count * 100)) : 0;
+  const ramPct = Math.round(s.ram.pct);
+
+  // Aggregate GPU: average memory usage across all GPUs
+  let gpuMemPct = 0;
+  let gpuUtilPct = 0;
+  if (s.gpus && s.gpus.length > 0) {
+    gpuMemPct = Math.round(s.gpus.reduce((a, g) => a + g.mem_pct, 0) / s.gpus.length);
+    gpuUtilPct = Math.round(s.gpus.reduce((a, g) => a + g.util_pct, 0) / s.gpus.length);
+  }
+
+  const miniImg = s.img ? `<img class="portrait-sm" src="/static/img/${s.img}" alt="${s.name}" onclick="event.stopPropagation()" ondblclick="event.stopPropagation(); showQuote('${s.name}')" title="Double-click me">` : '';
+  const miniWarnings = getWarnings(s);
+  const miniWarnDot = miniWarnings.length ? `<button class="warn-dot" onclick="event.stopPropagation(); showWarnings('${s.name}')" title="${miniWarnings.length} warning${miniWarnings.length>1?'s':''}"></button>` : '';
+
+  let html = `<div class="mini-card" onclick="scrollToServer(${idx})">
+    ${miniWarnDot}
+    ${miniImg}
+    <div class="mc-name">${s.name}</div>
+    <div class="mc-desc">${s.desc}</div>`;
+
+  // CPU load bar
+  html += `<div class="mini-label-row"><span>CPU</span><span class="val">${cpuPct}%</span></div>`;
+  html += `<div class="mini-bar"><div class="bar-fill ${fillClass(cpuPct)}" style="width:${cpuPct}%"></div></div>`;
+
+  // RAM bar
+  html += `<div class="mini-label-row"><span>RAM</span><span class="val">${ramPct}%</span></div>`;
+  html += `<div class="mini-bar"><div class="bar-fill ${fillClass(ramPct)}" style="width:${ramPct}%"></div></div>`;
+
+  // GPU bar (if any)
+  if (s.gpus && s.gpus.length > 0) {
+    html += `<div class="mini-label-row"><span>GPU Mem</span><span class="val">${gpuMemPct}%</span></div>`;
+    html += `<div class="mini-bar"><div class="bar-fill ${fillClass(gpuMemPct)}" style="width:${gpuMemPct}%"></div></div>`;
+    html += `<div class="mini-label-row"><span>GPU Util</span><span class="val">${gpuUtilPct}%</span></div>`;
+    html += `<div class="mini-bar"><div class="bar-fill ${fillClass(gpuUtilPct)}" style="width:${gpuUtilPct}%"></div></div>`;
+  }
+
+  html += `</div>`;
+  return html;
+}
+
+function scrollToServer(idx) {
+  const cards = document.querySelectorAll('#server-grid .card');
+  if (cards[idx]) {
+    cards[idx].scrollIntoView({ behavior: 'smooth', block: 'start' });
+    cards[idx].style.borderColor = 'var(--accent)';
+    setTimeout(() => cards[idx].style.borderColor = '', 2000);
+  }
+}
+
+function esc(s) {
+  if (!s) return '';
+  return s.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+}
+
+let refreshTimer;
+
+async function fetchData() {
+  const btn = document.getElementById('refresh-btn');
+  btn.classList.add('spinning');
+  btn.textContent = 'Refreshing...';
+
+  try {
+    const resp = await fetch('/api/servers');
+    const servers = await resp.json();
+    window.__lastServers = servers;
+    document.getElementById('overview-grid').innerHTML =
+      servers.map((s, i) => renderMiniCard(s, i)).join('');
+    const userAgg = aggregateUsers(servers);
+    document.getElementById('user-grid').innerHTML =
+      userAgg.map(renderUserCard).filter(Boolean).join('');
+    const grid = document.getElementById('server-grid');
+    grid.innerHTML = servers.map(renderServer).join('');
+    const now = new Date().toLocaleTimeString();
+    document.getElementById('status').innerHTML =
+      `<span class="dot"></span>Updated ${now} &middot; auto-refresh 30s`;
+  } catch (e) {
+    document.getElementById('status').innerHTML =
+      `<span class="dot" style="background:var(--red)"></span>Fetch error`;
+  } finally {
+    btn.classList.remove('spinning');
+    btn.textContent = 'Refresh';
+  }
+}
+
+// Initial fetch + interval
+fetchData();
+refreshTimer = setInterval(fetchData, REFRESH_INTERVAL);
+</script>
+</body>
+</html>
