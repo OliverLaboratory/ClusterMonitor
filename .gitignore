@@ -7,3 +7,7 @@ __pycache__/
 .DS_Store
 nohup.out
 .claude/
+
+# Runtime state — must not be committed
+users.db
+.secret_key

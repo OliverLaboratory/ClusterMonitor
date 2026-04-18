@@ -1,0 +1,32 @@
+compute.oliverlaboratory.com {
+	encode zstd gzip
+
+	# Anyone can hit /healthz for monitoring
+	handle /healthz {
+		reverse_proxy 127.0.0.1:5111
+	}
+
+	# Everything else goes to the Flask app via the reverse SSH tunnel
+	handle {
+		reverse_proxy 127.0.0.1:5111 {
+			header_up X-Forwarded-Proto https
+			header_up X-Forwarded-Host {host}
+		}
+	}
+
+	# Tight security headers
+	header {
+		Strict-Transport-Security "max-age=31536000; includeSubDomains"
+		X-Content-Type-Options nosniff
+		Referrer-Policy strict-origin-when-cross-origin
+		X-Frame-Options DENY
+		-Server
+	}
+
+	log {
+		output file /var/log/caddy/compute.log {
+			roll_size 10MiB
+			roll_keep 5
+		}
+	}
+}

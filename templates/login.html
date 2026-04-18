@@ -1,0 +1,118 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Compute Monitor — Sign in</title>
+<link rel="icon" type="image/png" href="/static/img/favicon.png">
+<style>
+  :root {
+    --bg: #0f1117;
+    --card: #1a1d27;
+    --card-border: #2a2d3a;
+    --text: #e0e0e0;
+    --text-dim: #888;
+    --accent: #6c8cff;
+    --red: #f44336;
+  }
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body {
+    font-family: 'SF Mono', 'Cascadia Code', 'Consolas', monospace;
+    background: var(--bg);
+    color: var(--text);
+    min-height: 100vh;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 20px;
+  }
+  .box {
+    background: var(--card);
+    border: 1px solid var(--card-border);
+    border-radius: 10px;
+    padding: 32px 28px;
+    width: 100%;
+    max-width: 360px;
+  }
+  h1 {
+    font-size: 1.2rem;
+    font-weight: 600;
+    letter-spacing: 0.5px;
+    margin-bottom: 4px;
+  }
+  .sub {
+    font-size: 0.8rem;
+    color: var(--text-dim);
+    margin-bottom: 24px;
+  }
+  label {
+    display: block;
+    font-size: 0.75rem;
+    color: var(--text-dim);
+    margin-bottom: 6px;
+    letter-spacing: 0.5px;
+    text-transform: uppercase;
+  }
+  input[type=text], input[type=password] {
+    width: 100%;
+    background: var(--bg);
+    border: 1px solid var(--card-border);
+    border-radius: 6px;
+    padding: 10px 12px;
+    color: var(--text);
+    font-family: inherit;
+    font-size: 0.9rem;
+    margin-bottom: 16px;
+    transition: border-color 0.15s;
+  }
+  input:focus {
+    outline: none;
+    border-color: var(--accent);
+  }
+  button {
+    width: 100%;
+    background: var(--accent);
+    color: #0f1117;
+    border: none;
+    border-radius: 6px;
+    padding: 11px;
+    font-family: inherit;
+    font-size: 0.9rem;
+    font-weight: 600;
+    cursor: pointer;
+    letter-spacing: 0.5px;
+  }
+  button:hover { filter: brightness(1.1); }
+  .flash {
+    background: rgba(244, 67, 54, 0.1);
+    border: 1px solid rgba(244, 67, 54, 0.4);
+    color: var(--red);
+    padding: 10px 12px;
+    border-radius: 6px;
+    font-size: 0.8rem;
+    margin-bottom: 16px;
+  }
+  .foot {
+    margin-top: 20px;
+    font-size: 0.7rem;
+    color: var(--text-dim);
+    text-align: center;
+  }
+</style>
+</head>
+<body>
+  <form class="box" method="POST" action="{{ url_for('login') }}">
+    <h1>Compute Monitor</h1>
+    <div class="sub">Oliver Lab · sign in to continue</div>
+    {% with msgs = get_flashed_messages() %}
+      {% for m in msgs %}<div class="flash">{{ m }}</div>{% endfor %}
+    {% endwith %}
+    <label for="username">Username</label>
+    <input type="text" id="username" name="username" autocomplete="username" autofocus required>
+    <label for="password">Password</label>
+    <input type="password" id="password" name="password" autocomplete="current-password" required>
+    <button type="submit">Sign in</button>
+    <div class="foot">Ask the admin for an account.</div>
+  </form>
+</body>
+</html>

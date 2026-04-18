@@ -1,0 +1,27 @@
+[Unit]
+Description=Reverse SSH tunnel to compute.oliverlaboratory.com (DO droplet)
+After=network-online.target compute-monitor.service
+Wants=network-online.target
+
+[Service]
+Type=simple
+User=gonzc11
+Environment="AUTOSSH_GATETIME=0"
+Environment="AUTOSSH_POLL=60"
+# -M 0 disables autossh's own monitoring port (we rely on ServerAliveInterval)
+# -N: no remote command. -T: no TTY.
+# -R: forward remote 127.0.0.1:5111 -> local 127.0.0.1:5111 (Flask).
+ExecStart=/usr/bin/autossh -M 0 -N -T \
+  -o "ExitOnForwardFailure=yes" \
+  -o "ServerAliveInterval=30" \
+  -o "ServerAliveCountMax=3" \
+  -o "StrictHostKeyChecking=accept-new" \
+  -o "UserKnownHostsFile=/home/gonzc11/.ssh/known_hosts" \
+  -i /home/gonzc11/.ssh/id_ed25519_clustermonitor_do \
+  -R 127.0.0.1:5111:127.0.0.1:5111 \
+  root@137.184.145.140
+Restart=always
+RestartSec=10
+
+[Install]
+WantedBy=multi-user.target

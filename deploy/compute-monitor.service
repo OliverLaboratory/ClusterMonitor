@@ -1,0 +1,17 @@
+[Unit]
+Description=Compute Monitor Flask app (Oliver Lab)
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=simple
+User=gonzc11
+WorkingDirectory=/home/gonzc11/compute_monitor
+ExecStart=/usr/bin/python3 /home/gonzc11/compute_monitor/app.py
+Restart=on-failure
+RestartSec=5
+StandardOutput=append:/home/gonzc11/compute_monitor/app.log
+StandardError=append:/home/gonzc11/compute_monitor/app.log
+
+[Install]
+WantedBy=multi-user.target

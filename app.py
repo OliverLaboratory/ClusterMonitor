@@ -1,13 +1,99 @@
 #!/usr/bin/env python3
 """Compute Monitor - SSH-based server monitoring dashboard."""
 
+import os
+import sqlite3
 import subprocess
 import time
 import re
+import secrets
 from concurrent.futures import ThreadPoolExecutor, as_completed
-from flask import Flask, render_template, jsonify
+from pathlib import Path
+from flask import Flask, render_template, jsonify, request, redirect, url_for, flash
+from flask_login import (
+    LoginManager, UserMixin, login_user, logout_user,
+    login_required, current_user,
+)
+from werkzeug.security import check_password_hash
+
+BASE_DIR = Path(__file__).resolve().parent
+DB_PATH = BASE_DIR / "users.db"
+SECRET_KEY_PATH = BASE_DIR / ".secret_key"
+
+
+def _load_secret_key():
+    env_key = os.environ.get("COMPUTE_MONITOR_SECRET")
+    if env_key:
+        return env_key
+    if SECRET_KEY_PATH.exists():
+        return SECRET_KEY_PATH.read_text().strip()
+    key = secrets.token_hex(32)
+    SECRET_KEY_PATH.write_text(key)
+    SECRET_KEY_PATH.chmod(0o600)
+    return key
+
 
 app = Flask(__name__)
+app.config.update(
+    SECRET_KEY=_load_secret_key(),
+    SESSION_COOKIE_SECURE=os.environ.get("COMPUTE_MONITOR_INSECURE_COOKIE") != "1",
+    SESSION_COOKIE_HTTPONLY=True,
+    SESSION_COOKIE_SAMESITE="Lax",
+    PERMANENT_SESSION_LIFETIME=60 * 60 * 24 * 14,
+)
+
+login_manager = LoginManager(app)
+login_manager.login_view = "login"
+login_manager.session_protection = "strong"
+
+
+class User(UserMixin):
+    def __init__(self, row):
+        self.id = str(row["id"])
+        self.username = row["username"]
+        self.password_hash = row["password_hash"]
+
+
+def db():
+    conn = sqlite3.connect(DB_PATH)
+    conn.row_factory = sqlite3.Row
+    return conn
+
+
+def init_db():
+    with db() as conn:
+        conn.execute(
+            """CREATE TABLE IF NOT EXISTS users (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                username TEXT UNIQUE NOT NULL,
+                password_hash TEXT NOT NULL,
+                created_at INTEGER NOT NULL
+            )"""
+        )
+
+
+def get_user_by_username(username):
+    with db() as conn:
+        row = conn.execute(
+            "SELECT * FROM users WHERE username = ?", (username,)
+        ).fetchone()
+    return User(row) if row else None
+
+
+def get_user_by_id(user_id):
+    with db() as conn:
+        row = conn.execute(
+            "SELECT * FROM users WHERE id = ?", (user_id,)
+        ).fetchone()
+    return User(row) if row else None
+
+
+@login_manager.user_loader
+def load_user(user_id):
+    return get_user_by_id(user_id)
+
+
+init_db()
 
 SERVERS = [
     {"name": "ignatius",  "host": "ignatius",  "desc": "RTX 5090",      "img": "ignatius.jpg"},
@@ -259,15 +345,49 @@ def collect_all():
     return [results[s["name"]] for s in SERVERS if s["name"] in results]
 
 
+@app.route("/login", methods=["GET", "POST"])
+def login():
+    if current_user.is_authenticated:
+        return redirect(url_for("index"))
+    if request.method == "POST":
+        username = (request.form.get("username") or "").strip().lower()
+        password = request.form.get("password") or ""
+        user = get_user_by_username(username)
+        if user and check_password_hash(user.password_hash, password):
+            login_user(user, remember=True)
+            nxt = request.args.get("next")
+            if nxt and nxt.startswith("/"):
+                return redirect(nxt)
+            return redirect(url_for("index"))
+        flash("Invalid username or password.")
+        time.sleep(0.5)
+        return redirect(url_for("login"))
+    return render_template("login.html")
+
+
+@app.route("/logout")
+@login_required
+def logout():
+    logout_user()
+    return redirect(url_for("login"))
+
+
 @app.route("/")
+@login_required
 def index():
-    return render_template("index.html")
+    return render_template("index.html", username=current_user.username)
 
 
 @app.route("/api/servers")
+@login_required
 def api_servers():
     return jsonify(collect_all())
 
 
+@app.route("/healthz")
+def healthz():
+    return "ok", 200
+
+
 if __name__ == "__main__":
-    app.run(host="0.0.0.0", port=5111, debug=False)
+    app.run(host="127.0.0.1", port=5111, debug=False)
