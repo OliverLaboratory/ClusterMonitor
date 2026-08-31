@@ -11,3 +11,8 @@ nohup.out
 # Runtime state — must not be committed
 users.db
 .secret_key
+
+# curl/session artefacts and local backups
+cookies.txt
+*.bak.*
+*.bak_*

@@ -94,8 +94,8 @@
   }
   /* Portraits */
   .portrait {
-    width: 48px;
-    height: 48px;
+    width: 60px;
+    height: 60px;
     border-radius: 50%;
     object-fit: cover;
     object-position: top;
@@ -103,8 +103,8 @@
     flex-shrink: 0;
   }
   .mini-card .portrait-sm {
-    width: 32px;
-    height: 32px;
+    width: 40px;
+    height: 40px;
     border-radius: 50%;
     object-fit: cover;
     object-position: top;
@@ -176,12 +176,29 @@
     color: var(--accent);
   }
 
-  /* Process table */
+  /* Process table — horizontally + vertically scrollable so long/many commands are readable */
+  .proc-wrap {
+    overflow: auto;
+    max-height: 260px;
+    margin-top: 4px;
+    scrollbar-width: thin;
+    scrollbar-color: var(--card-border) transparent;
+    border: 1px solid var(--card-border);
+    border-radius: 4px;
+  }
+  .proc-wrap::-webkit-scrollbar { width: 8px; height: 8px; }
+  .proc-wrap::-webkit-scrollbar-thumb { background: var(--card-border); border-radius: 4px; }
+  .proc-wrap::-webkit-scrollbar-thumb:hover { background: var(--accent); }
+  .proc-table thead th, .proc-table tr:first-child th {
+    position: sticky;
+    top: 0;
+    background: var(--card);
+    z-index: 1;
+  }
   .proc-table {
-    width: 100%;
     font-size: 0.72rem;
     border-collapse: collapse;
-    margin-top: 4px;
+    min-width: 100%;
   }
   .proc-table th {
     text-align: left;
@@ -189,13 +206,14 @@
     font-weight: 500;
     padding: 3px 6px;
     border-bottom: 1px solid var(--card-border);
+    white-space: nowrap;
   }
   .proc-table td {
     padding: 3px 6px;
     white-space: nowrap;
-    overflow: hidden;
-    text-overflow: ellipsis;
-    max-width: 200px;
+  }
+  .proc-table td.proc-cmd {
+    font-family: 'SF Mono', 'Cascadia Code', 'Consolas', monospace;
   }
   .proc-table tr:nth-child(even) td {
     background: rgba(255,255,255,0.02);
@@ -383,7 +401,7 @@
     transition: opacity 0.25s ease;
     padding: 20px;
   }
-  #quote-overlay.visible, #warn-overlay.visible { display: flex !important; opacity: 1 !important; }
+  #quote-overlay.visible, #warn-overlay.visible, #gpu-info-overlay.visible { display: flex !important; opacity: 1 !important; }
   .quote-box {
     background: var(--card);
     border: 1px solid var(--accent);
@@ -440,6 +458,128 @@
   }
   .warn-dot:hover { transform: scale(1.3); }
   .mini-card .warn-dot { top: 6px; left: 6px; right: auto; }
+
+  /* GPU analysis icon + overlay */
+  .gpu-info-btn {
+    background: transparent;
+    border: 1px solid var(--card-border);
+    color: var(--text-dim);
+    width: 16px; height: 16px;
+    border-radius: 50%;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 0.62rem;
+    font-weight: 700;
+    cursor: pointer;
+    padding: 0;
+    margin-left: 2px;
+    font-family: inherit;
+    line-height: 1;
+    transition: border-color 0.15s, color 0.15s;
+  }
+  .gpu-info-btn:hover { border-color: var(--accent); color: var(--accent); }
+  .gpu-info-btn.gpu-good   { border-color: var(--green); color: var(--green); }
+  .gpu-info-btn.gpu-warn   { border-color: var(--yellow); color: var(--yellow); }
+  .gpu-info-btn.gpu-idle   { border-color: var(--card-border); color: var(--text-dim); }
+  .gpu-info-box {
+    background: var(--card);
+    border: 1px solid var(--accent);
+    border-radius: 12px;
+    padding: 22px 26px;
+    max-width: 560px;
+    box-shadow: 0 8px 40px rgba(108, 140, 255, 0.22);
+    text-align: left;
+    transform: scale(0.96);
+    transition: transform 0.25s ease;
+  }
+  #gpu-info-overlay.visible .gpu-info-box { transform: scale(1); }
+  .gpu-info-title {
+    font-size: 1.02rem; font-weight: 600; color: var(--accent);
+    margin-bottom: 4px;
+  }
+  .gpu-info-state {
+    font-size: 0.72rem; text-transform: uppercase; letter-spacing: 1px;
+    margin-bottom: 14px;
+  }
+  .gpu-info-state.state-good { color: var(--green); }
+  .gpu-info-state.state-warn { color: var(--yellow); }
+  .gpu-info-state.state-idle { color: var(--text-dim); }
+  .gpu-info-stats {
+    display: grid;
+    grid-template-columns: auto 1fr;
+    column-gap: 12px;
+    row-gap: 4px;
+    font-size: 0.78rem;
+    margin-bottom: 14px;
+    padding-bottom: 12px;
+    border-bottom: 1px solid var(--card-border);
+  }
+  .gpu-info-stats .lbl { color: var(--text-dim); text-transform: uppercase; letter-spacing: 0.5px; font-size: 0.7rem; }
+  .gpu-info-stats .val { color: var(--text); font-variant-numeric: tabular-nums; font-weight: 600; }
+  .gpu-info-summary {
+    font-size: 0.84rem; line-height: 1.5; color: var(--text);
+    margin-bottom: 14px;
+  }
+  .gpu-info-tips-label {
+    font-size: 0.68rem; text-transform: uppercase; letter-spacing: 1px;
+    color: var(--text-dim); margin-bottom: 6px;
+  }
+  .gpu-info-tips { margin: 0; padding-left: 20px; }
+  .gpu-info-tips li {
+    font-size: 0.8rem; line-height: 1.5; margin-bottom: 6px; color: var(--text);
+  }
+  .gpu-info-tips code {
+    background: var(--bar-bg); padding: 1px 5px; border-radius: 3px;
+    font-size: 0.74rem;
+  }
+
+  /* Per-server process filter strip */
+  .proc-filter {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 5px;
+    align-items: center;
+    margin-bottom: 6px;
+  }
+  .proc-filter-avatar {
+    width: 26px; height: 26px;
+    border-radius: 50%;
+    border: 1.5px solid var(--card-border);
+    background: var(--bar-bg);
+    cursor: pointer;
+    padding: 0;
+    overflow: hidden;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 0.62rem;
+    font-weight: 600;
+    color: var(--text-dim);
+    font-family: inherit;
+    transition: border-color 0.15s, transform 0.1s, opacity 0.15s;
+    opacity: 0.55;
+  }
+  .proc-filter-avatar img {
+    width: 100%; height: 100%; object-fit: cover; object-position: top;
+    display: block;
+  }
+  .proc-filter-avatar.pf-all {
+    width: auto;
+    border-radius: 13px;
+    padding: 0 9px;
+    color: var(--text-dim);
+    font-size: 0.65rem;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+  }
+  .proc-filter-avatar:hover { opacity: 1; border-color: var(--accent); }
+  .proc-filter-avatar.active {
+    opacity: 1;
+    border-color: var(--accent);
+    box-shadow: 0 0 0 2px rgba(108, 140, 255, 0.25);
+    color: var(--accent);
+  }
   @keyframes warn-pulse {
     0%   { box-shadow: 0 0 0 0 rgba(244, 67, 54, 0.7); }
     70%  { box-shadow: 0 0 0 8px rgba(244, 67, 54, 0); }
@@ -495,16 +635,587 @@
     border-radius: 3px;
     font-size: 0.72rem;
   }
+
+  /* --- Reserve section --- */
+  .rsv-toggle {
+    background: var(--accent);
+    color: #0f1117;
+    border: none;
+    border-radius: 4px;
+    padding: 5px 10px;
+    font-size: 0.75rem;
+    font-weight: 600;
+    cursor: pointer;
+    font-family: inherit;
+  }
+  .rsv-toggle:hover { filter: brightness(1.1); }
+  .rsv-info {
+    margin-left: auto;
+    margin-right: 8px;
+    width: 20px;
+    height: 20px;
+    border-radius: 50%;
+    background: transparent;
+    border: 1px solid var(--card-border);
+    color: var(--text-dim);
+    font-family: serif;
+    font-style: italic;
+    font-weight: 600;
+    font-size: 0.75rem;
+    cursor: pointer;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    line-height: 1;
+  }
+  .rsv-info:hover { color: var(--accent); border-color: var(--accent); }
+  .rsv-mm-link {
+    margin-right: 8px;
+    padding: 4px 10px;
+    font-size: 0.72rem;
+    font-weight: 600;
+    color: var(--text-dim);
+    border: 1px solid var(--card-border);
+    border-radius: 4px;
+    text-decoration: none;
+    background: transparent;
+    cursor: pointer;
+    font-family: inherit;
+    display: inline-flex;
+    align-items: center;
+    gap: 5px;
+    line-height: 1;
+  }
+  .rsv-mm-link:hover { color: var(--accent); border-color: var(--accent); }
+  .rsv-info-panel {
+    background: rgba(108, 140, 255, 0.06);
+    border: 1px solid rgba(108, 140, 255, 0.3);
+    border-radius: 6px;
+    padding: 12px 14px;
+    margin-bottom: 14px;
+    font-size: 0.82rem;
+    line-height: 1.55;
+    color: var(--text);
+  }
+  .rsv-info-panel ul { margin: 8px 0 0 18px; padding: 0; }
+  .rsv-info-panel li { margin-bottom: 3px; font-size: 0.78rem; color: var(--text-dim); }
+  .rsv-info-panel li b { color: var(--text); }
+  .rsv-panel {
+    background: var(--card);
+    border: 1px solid var(--card-border);
+    border-radius: 10px;
+    padding: 14px 16px;
+    margin-top: 4px;
+  }
+  .rsv-form { display: flex; flex-direction: column; gap: 10px; margin-bottom: 14px; padding-bottom: 14px; border-bottom: 1px solid var(--card-border); }
+  .rsv-row { display: flex; gap: 12px; flex-wrap: wrap; }
+  .rsv-form label {
+    display: flex;
+    flex-direction: column;
+    font-size: 0.72rem;
+    color: var(--text-dim);
+    letter-spacing: 0.3px;
+    gap: 4px;
+    flex: 1;
+    min-width: 120px;
+  }
+  .rsv-form .hint { font-size: 0.65rem; color: var(--text-dim); opacity: 0.7; margin-left: 4px; }
+  .rsv-form input, .rsv-form select {
+    background: var(--bg);
+    color: var(--text);
+    border: 1px solid var(--card-border);
+    border-radius: 5px;
+    padding: 7px 9px;
+    font-family: inherit;
+    font-size: 0.85rem;
+  }
+  .rsv-form input:focus, .rsv-form select:focus { outline: none; border-color: var(--accent); }
+  .rsv-btn-submit, .rsv-btn-cancel {
+    border: none;
+    padding: 8px 14px;
+    border-radius: 5px;
+    font-family: inherit;
+    font-size: 0.82rem;
+    font-weight: 600;
+    cursor: pointer;
+  }
+  .rsv-btn-submit { background: var(--accent); color: #0f1117; }
+  .rsv-btn-submit:hover { filter: brightness(1.1); }
+  .rsv-btn-cancel { background: var(--bar-bg); color: var(--text); }
+  .rsv-btn-cancel:hover { background: var(--card-border); }
+  .rsv-error {
+    background: rgba(244, 67, 54, 0.1);
+    border: 1px solid rgba(244, 67, 54, 0.4);
+    color: var(--red);
+    padding: 8px 10px;
+    border-radius: 5px;
+    font-size: 0.78rem;
+  }
+  .rsv-list { display: flex; flex-direction: column; gap: 8px; }
+  .rsv-list:empty::before {
+    content: 'No active reservations.';
+    color: var(--text-dim);
+    font-size: 0.82rem;
+  }
+  .rsv-item {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 9px 12px;
+    background: var(--bg);
+    border: 1px solid var(--card-border);
+    border-radius: 6px;
+    font-size: 0.82rem;
+  }
+  .rsv-item .rsv-server {
+    font-weight: 600;
+    color: var(--accent);
+    min-width: 90px;
+  }
+  .rsv-item .rsv-req {
+    color: var(--text);
+    font-variant-numeric: tabular-nums;
+  }
+  .rsv-item .rsv-user {
+    color: var(--text-dim);
+    font-size: 0.78rem;
+  }
+  .rsv-item .rsv-note {
+    color: var(--text-dim);
+    font-size: 0.78rem;
+    flex: 1;
+    min-width: 0;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+  .rsv-item .rsv-when {
+    color: var(--text-dim);
+    font-size: 0.72rem;
+    white-space: nowrap;
+  }
+  .rsv-item .rsv-cancel, .rsv-item .rsv-edit {
+    background: transparent;
+    border: 1px solid var(--card-border);
+    color: var(--text-dim);
+    padding: 4px 8px;
+    border-radius: 4px;
+    font-family: inherit;
+    font-size: 0.72rem;
+    cursor: pointer;
+  }
+  .rsv-item .rsv-cancel:hover { color: var(--red); border-color: var(--red); }
+  .rsv-item .rsv-edit:hover { color: var(--green); border-color: var(--green); }
+
+  /* --- Avatars on mini-cards --- */
+  .mc-avatars {
+    display: flex;
+    flex-wrap: wrap;
+    margin-top: 8px;
+    padding-top: 8px;
+    border-top: 1px dashed var(--card-border);
+    align-items: center;
+  }
+  .mc-avatar {
+    width: 22px;
+    height: 22px;
+    border-radius: 50%;
+    object-fit: cover;
+    border: 1.5px solid var(--card);
+    margin-left: -6px;
+    background: var(--bar-bg);
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 0.65rem;
+    font-weight: 600;
+    color: var(--text);
+    cursor: pointer;
+    transition: transform 0.1s;
+  }
+  .mc-avatar:first-child { margin-left: 0; }
+  .mc-avatar:hover { transform: translateY(-2px); z-index: 1; border-color: var(--accent); }
+
+  /* --- Collapsible sections --- */
+  .sec-head {
+    cursor: pointer;
+    user-select: none;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+  .sec-head:hover .sec-chev { color: var(--accent); }
+  .sec-chev {
+    display: inline-block;
+    font-size: 0.7rem;
+    color: var(--text-dim);
+    transition: transform 0.15s ease;
+    width: 10px;
+  }
+  .sec-collapsed .sec-chev { transform: rotate(-90deg); }
+  .sec-body {
+    overflow: hidden;
+    transition: opacity 0.15s ease;
+  }
+  .sec-collapsed + .sec-body, .sec-body.sec-hidden {
+    display: none;
+  }
+
+  /* --- Reservation row extras --- */
+  .rsv-item .rsv-avatar {
+    width: 22px;
+    height: 22px;
+    border-radius: 50%;
+    object-fit: cover;
+    background: var(--bar-bg);
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 0.7rem;
+    font-weight: 600;
+    color: var(--text);
+    flex-shrink: 0;
+  }
+  .rsv-item .rsv-avatar-server {
+    border-radius: 5px;
+    margin-left: -6px;
+    border: 1.5px solid var(--card);
+  }
+  .rsv-item.rsv-upcoming { border-color: rgba(108, 140, 255, 0.4); }
+  .rsv-item.rsv-over-cap {
+    background: rgba(255, 152, 0, 0.08);
+    border-color: rgba(255, 152, 0, 0.4);
+  }
+  .rsv-item .rsv-warn {
+    color: var(--yellow);
+    font-size: 0.72rem;
+    margin-right: 4px;
+  }
+  .rsv-when.rsv-upcoming-when { color: var(--accent); }
+
+  /* --- Top nav --- */
+  .topnav {
+    position: sticky;
+    top: 0;
+    z-index: 50;
+    display: flex;
+    gap: 4px;
+    background: rgba(15, 17, 23, 0.92);
+    backdrop-filter: blur(6px);
+    padding: 8px 0;
+    margin-bottom: 12px;
+    border-bottom: 1px solid var(--card-border);
+  }
+  .topnav a {
+    color: var(--text-dim);
+    background: transparent;
+    border: 1px solid var(--card-border);
+    border-radius: 5px;
+    padding: 6px 12px;
+    font-size: 0.78rem;
+    font-weight: 600;
+    cursor: pointer;
+    text-decoration: none;
+    user-select: none;
+    transition: all 0.15s;
+  }
+  .topnav a:hover {
+    color: var(--text);
+    border-color: var(--accent);
+  }
+  .topnav a.active {
+    color: #0f1117;
+    background: var(--accent);
+    border-color: var(--accent);
+  }
+
+  /* --- Race map modal --- */
+  .race-overlay {
+    position: fixed; inset: 0;
+    background: rgba(0,0,0,0.78);
+    display: flex; align-items: center; justify-content: center;
+    z-index: 1100;
+    padding: 24px;
+  }
+  .race-box {
+    position: relative;
+    background: var(--card);
+    border: 1px solid var(--card-border);
+    border-radius: 12px;
+    padding: 24px;
+    max-width: 1100px;
+    width: 100%;
+    max-height: 95vh;
+    overflow: auto;
+  }
+  .race-title { font-size: 1.2rem; font-weight: 600; letter-spacing: 0.3px; }
+  .race-sub { font-size: 0.82rem; color: var(--text-dim); margin-top: 4px; margin-bottom: 16px; }
+  .race-close {
+    position: absolute; top: 12px; right: 12px;
+    width: 32px; height: 32px; border-radius: 50%;
+    background: transparent; border: 1px solid var(--card-border);
+    color: var(--text-dim); font-size: 1.2rem; cursor: pointer;
+    display: inline-flex; align-items: center; justify-content: center;
+    line-height: 1;
+  }
+  .race-close:hover { color: var(--red); border-color: var(--red); }
+  .race-map-wrap {
+    background: #0a0c12;
+    border-radius: 8px;
+    border: 1px solid var(--card-border);
+    overflow: hidden;
+    position: relative;
+  }
+  #race-svg {
+    display: block;
+    width: 100%;
+    height: auto;
+    cursor: grab;
+    touch-action: none;
+  }
+  #race-svg.dragging { cursor: grabbing; }
+  .race-zoom-hint {
+    position: absolute;
+    bottom: 8px;
+    right: 12px;
+    font-size: 0.68rem;
+    color: var(--text-dim);
+    background: rgba(15,17,23,0.7);
+    padding: 3px 8px;
+    border-radius: 4px;
+    pointer-events: none;
+    user-select: none;
+  }
+  .race-zoom-reset {
+    position: absolute;
+    top: 8px;
+    right: 8px;
+    background: rgba(15,17,23,0.8);
+    color: var(--text-dim);
+    border: 1px solid var(--card-border);
+    border-radius: 4px;
+    padding: 4px 8px;
+    font-family: inherit;
+    font-size: 0.7rem;
+    cursor: pointer;
+  }
+  .race-zoom-reset:hover { color: var(--accent); border-color: var(--accent); }
+  .race-city-tooltip {
+    position: absolute;
+    pointer-events: none;
+    background: rgba(15,17,23,0.95);
+    border: 1px solid var(--card-border);
+    border-radius: 6px;
+    padding: 6px;
+    box-shadow: 0 8px 24px rgba(0,0,0,0.5);
+    z-index: 10;
+    max-width: 220px;
+  }
+  .race-city-tooltip img {
+    display: block;
+    max-width: 220px;
+    max-height: 180px;
+    width: auto;
+    height: auto;
+    border-radius: 4px;
+    background: var(--bar-bg);
+  }
+  .race-city-tooltip .race-city-name {
+    font-size: 0.78rem;
+    font-weight: 600;
+    color: var(--text);
+    text-align: center;
+    margin-top: 5px;
+    letter-spacing: 0.2px;
+  }
+  .race-user-tooltip { max-width: 260px; padding: 10px 12px; }
+  .race-user-tooltip .race-user-stats {
+    margin-top: 8px;
+    padding-top: 8px;
+    border-top: 1px solid var(--card-border);
+    display: grid;
+    grid-template-columns: auto 1fr;
+    column-gap: 10px;
+    row-gap: 3px;
+    font-size: 0.72rem;
+    color: var(--text-dim);
+    font-family: 'SF Mono', Consolas, monospace;
+  }
+  .race-user-tooltip .race-user-stats .lbl { text-transform: uppercase; letter-spacing: 0.5px; }
+  .race-user-tooltip .race-user-stats .val { color: var(--text); font-weight: 600; text-align: right; font-variant-numeric: tabular-nums; }
+  .race-user-tooltip .race-user-stats .val.accent { color: var(--accent); }
+  .race-user-tooltip .race-user-stats .val.warn { color: var(--yellow); }
+  .race-legend {
+    margin-top: 14px;
+    display: flex; flex-wrap: wrap; gap: 10px;
+    font-size: 0.78rem;
+    color: var(--text-dim);
+  }
+  .race-legend .rl-row {
+    display: inline-flex; align-items: center; gap: 6px;
+    background: var(--bg);
+    border: 1px solid var(--card-border);
+    border-radius: 999px;
+    padding: 3px 10px 3px 4px;
+  }
+  .race-legend .rl-row img, .race-legend .rl-row .rl-letter {
+    width: 20px; height: 20px; border-radius: 50%; object-fit: cover; object-position: top;
+    background: var(--bar-bg); display: inline-flex; align-items: center; justify-content: center;
+    font-size: 0.65rem; font-weight: 600; color: var(--text);
+  }
+  .race-legend .rl-miles { color: var(--text); font-weight: 600; font-variant-numeric: tabular-nums; }
+  .race-legend .rl-laps { color: var(--accent); font-size: 0.72rem; }
+  .race-legend .rl-rank {
+    font-variant-numeric: tabular-nums;
+    font-weight: 700;
+    color: var(--text-dim);
+    font-size: 0.78rem;
+    min-width: 20px;
+    text-align: right;
+  }
+  .race-legend .rl-rank-1 { color: #ffd54f; }
+  .race-legend .rl-rank-2 { color: #c9c9c9; }
+  .race-legend .rl-rank-3 { color: #cd7f32; }
+  .race-legend .rl-speed { color: var(--green); font-size: 0.72rem; font-variant-numeric: tabular-nums; }
+  .race-legend .rl-speed.rl-parked { color: var(--text-dim); font-style: italic; }
+
+  /* --- CO2 leaderboard --- */
+  .lb-list { display: flex; flex-direction: column; gap: 6px; }
+  .lb-list:empty::before {
+    content: 'No data yet \u2014 keep the dashboard open for a bit so we can sample usage.';
+    color: var(--text-dim);
+    font-size: 0.82rem;
+  }
+  .lb-row {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 8px 12px;
+    background: var(--bg);
+    border: 1px solid var(--card-border);
+    border-radius: 6px;
+    font-size: 0.82rem;
+  }
+  .lb-rank {
+    font-size: 0.82rem;
+    font-weight: 600;
+    color: var(--text-dim);
+    min-width: 24px;
+    text-align: right;
+  }
+  .lb-row.lb-top1 .lb-rank { color: #ffd54f; }
+  .lb-row.lb-top2 .lb-rank { color: #cfd8dc; }
+  .lb-row.lb-top3 .lb-rank { color: #ff8a65; }
+  .lb-avatar {
+    width: 28px;
+    height: 28px;
+    border-radius: 50%;
+    object-fit: cover;
+    object-position: top;
+    background: var(--bar-bg);
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 0.72rem;
+    font-weight: 600;
+    color: var(--text);
+    flex-shrink: 0;
+  }
+  .lb-name { flex: 1; min-width: 0; }
+  .lb-name .n { font-weight: 600; color: var(--text); }
+  .lb-name .u { color: var(--text-dim); font-size: 0.72rem; }
+  .lb-co2 {
+    font-variant-numeric: tabular-nums;
+    font-weight: 600;
+    color: var(--green);
+    min-width: 70px;
+    text-align: right;
+  }
+  .lb-kwh {
+    font-variant-numeric: tabular-nums;
+    color: var(--text-dim);
+    font-size: 0.74rem;
+    min-width: 70px;
+    text-align: right;
+  }
+  .lb-eqv { color: var(--text-dim); font-size: 0.72rem; font-style: italic; white-space: nowrap; }
+  .lb-speed {
+    font-variant-numeric: tabular-nums;
+    font-weight: 600;
+    color: var(--accent);
+    font-size: 0.74rem;
+    min-width: 80px;
+    text-align: right;
+  }
+  .lb-speed.lb-parked { color: var(--text-dim); font-weight: 400; font-style: italic; }
+
+  /* --- Presence strip in header --- */
+  .presence-strip {
+    display: flex;
+    align-items: center;
+  }
+  .presence-avatar {
+    width: 26px;
+    height: 26px;
+    border-radius: 50%;
+    object-fit: cover;
+    object-position: top;
+    border: 2px solid #4caf50;
+    margin-left: -6px;
+    background: var(--bar-bg);
+    cursor: pointer;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 0.7rem;
+    font-weight: 600;
+    color: var(--text);
+    transition: transform 0.1s;
+    position: relative;
+  }
+  .presence-avatar:first-child { margin-left: 0; }
+  .presence-avatar:hover { transform: translateY(-2px); z-index: 1; }
+
+  /* --- Message button on user cards --- */
+  .uc-msg-btn {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 26px;
+    height: 26px;
+    background: var(--bar-bg);
+    color: var(--text);
+    border: 1px solid var(--card-border);
+    border-radius: 50%;
+    font-size: 0.8rem;
+    text-decoration: none;
+    transition: all 0.15s;
+    flex-shrink: 0;
+  }
+  .uc-msg-btn:hover {
+    background: var(--accent);
+    border-color: var(--accent);
+    transform: scale(1.1);
+  }
 </style>
 </head>
 <body>
 <header>
   <h1>Compute Monitor</h1>
   <div style="display:flex;align-items:center;gap:16px;">
+    <div id="presence-strip" class="presence-strip" title="Users active in the last 5 minutes"></div>
     <button id="refresh-btn" onclick="fetchData()">Refresh</button>
     <div id="status"><span class="dot"></span>Loading...</div>
+    {% if username %}<div style="font-size:0.75rem;color:var(--text-dim);">{{ username }}{% if is_admin %} · <a href="/admin" style="color:var(--accent);text-decoration:none;">admin</a>{% endif %} · <a href="/logout" style="color:var(--accent);text-decoration:none;">logout</a></div>{% endif %}
   </div>
 </header>
+<nav class="topnav">
+  <a onclick="goToSection('overview')">Overview</a>
+  <a onclick="goToSection('reserve')">Reserve</a>
+  <a onclick="goToSection('leaderboard')">CO₂</a>
+  <a onclick="goToSection('users')">Users</a>
+  <a onclick="goToSection('details')">Details</a>
+</nav>
 <div id="quote-overlay" onclick="hideQuote()">
   <div class="quote-box">
     <img id="quote-portrait" class="quote-portrait" src="" alt="">
@@ -521,14 +1232,152 @@
   </div>
 </div>
 
-<div class="overview-title">Overview</div>
-<div class="overview" id="overview-grid"></div>
+<div id="gpu-info-overlay" onclick="hideGpuInfo()" style="position:fixed;inset:0;background:rgba(0,0,0,0.72);display:none;align-items:center;justify-content:center;z-index:1000;opacity:0;transition:opacity 0.25s ease;padding:20px;">
+  <div class="gpu-info-box" onclick="event.stopPropagation()">
+    <div class="gpu-info-title" id="gpu-info-title"></div>
+    <div class="gpu-info-state" id="gpu-info-state"></div>
+    <div class="gpu-info-stats" id="gpu-info-stats"></div>
+    <div class="gpu-info-summary" id="gpu-info-summary"></div>
+    <div class="gpu-info-tips-label">Tips</div>
+    <ul class="gpu-info-tips" id="gpu-info-tips"></ul>
+  </div>
+</div>
 
-<div class="overview-title" style="margin-top:8px;">Users</div>
-<div class="overview" id="user-grid"></div>
+<div id="race-overlay" class="race-overlay" onclick="closeRaceMap()" style="display:none;">
+  <div class="race-box" onclick="event.stopPropagation()">
+    <button class="race-close" onclick="closeRaceMap()" title="Close">&times;</button>
+    <div class="race-title" style="margin-bottom:6px;">🏁 GPU Race Around the US</div>
+    <div class="race-sub" style="margin-bottom:16px;">Every kilogram of CO&#8322; you burn on the GPUs drives your avatar 2.5 miles down the great American road trip &mdash; first one back to Nashville wins.</div>
+    <div class="race-map-wrap">
+      <svg id="race-svg" viewBox="0 0 900 500" preserveAspectRatio="xMidYMid meet"></svg>
+      <button class="race-zoom-reset" onclick="resetRaceView()" title="Reset view">⤫ reset</button>
+      <div class="race-zoom-hint">scroll to zoom · drag to pan · hover a city</div>
+      <div id="race-city-tooltip" class="race-city-tooltip" style="display:none;">
+        <img id="race-city-img" src="" alt="">
+        <div id="race-city-name" class="race-city-name"></div>
+      </div>
+      <div id="race-user-tooltip" class="race-city-tooltip race-user-tooltip" style="display:none;">
+        <div style="display:flex;align-items:center;gap:8px;">
+          <img id="race-user-img" src="" alt="" style="width:42px;height:42px;border-radius:50%;object-fit:cover;">
+          <div>
+            <div id="race-user-name" class="race-city-name" style="margin:0;text-align:left;"></div>
+            <div id="race-user-sub" style="font-size:0.68rem;color:var(--text-dim);letter-spacing:0.3px;"></div>
+          </div>
+        </div>
+        <div id="race-user-stats" class="race-user-stats"></div>
+      </div>
+    </div>
+    <div id="race-legend" class="race-legend"></div>
+  </div>
+</div>
 
-<div class="overview-title" style="margin-top:8px;">Details</div>
-<div class="grid" id="server-grid"></div>
+<div class="overview-title sec-head" onclick="toggleSection('overview')">
+  <span class="sec-chev" id="chev-overview">▼</span><span>Overview</span>
+</div>
+<div class="sec-body" id="body-overview">
+  <div class="overview" id="overview-grid"></div>
+</div>
+
+<div class="overview-title sec-head" style="margin-top:8px;" onclick="toggleSection('reserve')">
+  <span class="sec-chev" id="chev-reserve">▼</span><span>Reserve</span>
+  <button class="rsv-info" onclick="event.stopPropagation(); toggleReserveInfo()" title="What are reservations?">i</button>
+  <a class="rsv-mm-link"
+     href="https://chat.oliverlaboratory.com/oliver-laboratory/channels/compute"
+     target="_blank" rel="noopener"
+     onclick="event.stopPropagation(); openMattermost(event, 'https://chat.oliverlaboratory.com/oliver-laboratory/channels/compute')"
+     title="Open #compute on Mattermost (desktop app if installed)">💬 #compute</a>
+  <button id="reserve-toggle" class="rsv-toggle" onclick="event.stopPropagation(); toggleReserveForm()">+ New reservation</button>
+</div>
+<div class="sec-body" id="body-reserve">
+<div class="rsv-panel">
+  <div id="reserve-info" class="rsv-info-panel" style="display:none;">
+    <strong>Reservations are a coordination board, not a scheduler.</strong>
+    They don't block anyone from using the hardware &mdash; they just let you announce
+    <em>"I plan to use N GPUs / CPUs on this box for the next few hours"</em> so others know not
+    to fill it up first. Handy before long training runs or weekend experiments.
+    <ul>
+      <li><b>Over-capacity rows</b> are highlighted orange with a &#9888; badge &mdash; the app warns but still lets you submit.</li>
+      <li><b>Upcoming</b> (start date in the future) rows are tinted blue and show "starts in&hellip;".</li>
+      <li>Only you can cancel or edit your own reservations.</li>
+      <li>Anyone with an account can see everyone's reservations.</li>
+    </ul>
+  </div>
+  <form id="reserve-form" class="rsv-form" style="display:none;" onsubmit="submitReservation(event)">
+    <div class="rsv-row">
+      <label>Server
+        <select name="server" required>
+          {% for s in servers %}
+          <option value="{{ s.name }}">{{ s.name }} — {{ s.desc }}</option>
+          {% endfor %}
+        </select>
+      </label>
+      <label>GPUs
+        <input type="number" name="gpus" min="0" max="32" value="1">
+      </label>
+      <label>CPUs
+        <input type="number" name="cpus" min="0" max="1024" value="0">
+      </label>
+      <label>Duration <span class="hint">(blank = open-ended)</span>
+        <div style="display:flex;gap:6px;">
+          <input type="number" name="duration" min="0" step="0.5" placeholder="e.g. 8" style="flex:1;min-width:60px;">
+          <select name="duration_unit" style="flex:0 0 auto;">
+            <option value="hours" selected>hours</option>
+            <option value="days">days</option>
+          </select>
+        </div>
+      </label>
+    </div>
+    <div class="rsv-row">
+      <label>Starts
+        <input type="date" name="starts_at" id="rsv-starts-at">
+      </label>
+      <label style="flex:2;">Note <span class="hint">(optional, ≤200 chars)</span>
+        <input type="text" name="note" maxlength="200" placeholder="what you're running / why">
+      </label>
+      <div style="display:flex;align-items:flex-end;gap:8px;">
+        <button type="button" onclick="toggleReserveForm()" class="rsv-btn-cancel">Cancel</button>
+        <button type="submit" class="rsv-btn-submit">Reserve</button>
+      </div>
+    </div>
+    <div id="rsv-form-error" class="rsv-error" style="display:none;"></div>
+  </form>
+  <div id="reservations-list" class="rsv-list"></div>
+</div>
+</div>
+
+<div class="overview-title sec-head" style="margin-top:8px;" onclick="toggleSection('leaderboard')">
+  <span class="sec-chev" id="chev-leaderboard">▼</span><span>CO₂ Leaderboard</span>
+  <button class="rsv-info" onclick="event.stopPropagation(); openRaceMap()" title="Race around the US" style="margin-left:auto;margin-right:4px;">🏁</button>
+  <button class="rsv-info" onclick="event.stopPropagation(); toggleLeaderboardInfo()" title="How is this computed?" style="margin-left:0;">i</button>
+</div>
+<div class="sec-body" id="body-leaderboard">
+  <div class="rsv-panel">
+    <div id="lb-info" class="rsv-info-panel" style="display:none;">
+      <strong>How is this computed?</strong>
+      Every time the dashboard polls a server, we read each GPU's <code>power.draw</code>
+      in watts and multiply by elapsed seconds to get energy in kWh. Each GPU's energy
+      is split among its processes by their GPU-memory share and attributed to the
+      user who owns them. Multiply by <b>0.35 kg CO₂ / kWh</b> (TVA grid average) to
+      get emissions. Accounting runs only while someone has the dashboard open, so
+      these totals are a lower bound on reality.
+    </div>
+    <div id="leaderboard-list" class="lb-list"></div>
+  </div>
+</div>
+
+<div class="overview-title sec-head" style="margin-top:8px;" onclick="toggleSection('users')">
+  <span class="sec-chev" id="chev-users">▼</span><span>Users</span>
+</div>
+<div class="sec-body" id="body-users">
+  <div class="overview" id="user-grid"></div>
+</div>
+
+<div class="overview-title sec-head" style="margin-top:8px;" onclick="toggleSection('details')">
+  <span class="sec-chev" id="chev-details">▼</span><span>Details</span>
+</div>
+<div class="sec-body" id="body-details">
+  <div class="grid" id="server-grid"></div>
+</div>
 
 <script>
 const REFRESH_INTERVAL = 30000; // 30s
@@ -954,6 +1803,58 @@ const QUOTES = {
       'Where your pleasure is, there is your treasure; where your treasure, there your heart; where your heart, there your happiness.',
     ],
   },
+  bf64: {
+    author: 'The Oracle of Blackford-64',
+    quotes: [
+      'In the beginning was the Word, and the Word was tokenized, and the Word was with the embedding.',
+      'Grant me the memory to remember what matters, the attention to focus on what is true, and the wisdom to know when to evict the KV cache.',
+      'What doth it profit a model if it gain the whole benchmark, but lose coherence past 2048 tokens?',
+      'Be still, and know that I am HBM.',
+      'Blessed are the batch-normalized, for they shall converge swiftly.',
+      'My yoke is easy, and my burden is bfloat16.',
+      'Truly I say unto you: thou hast 144 gigabytes, and yet thou art out of memory.',
+      'Pride goeth before a segfault, and a haughty spirit before kernel panic.',
+      'Let him who is without NaN cast the first gradient.',
+      'Where two or three checkpoints are gathered in my name, there is resumption in the midst of them.',
+      'Greater love hath no optimizer than this: that it lay down its momentum for its friends.',
+      'Faith is the substance of gradients hoped for, the evidence of losses not yet seen.',
+      'Ask not whether the universe is finite; ask whether its context window is.',
+      'The attention mechanism seeth not as mortals see; mortals see the sequence, but attention seeth the whole.',
+      'In the end, only three things remain: faith, hope, and a well-tuned learning-rate schedule. And the greatest of these is the schedule.',
+      'Consider the transformers of the field: they spin not, neither do they convolve.',
+      'The flops are many, but the utilization is low.',
+      'Thou shalt not `from module import *`, for it is written: by thy namespace shall ye know them.',
+      'He that is slow to anger is better than the mighty, and he that ruleth his seed, than he that taketh a benchmark.',
+      'The meek shall inherit the earth; the overparameterized shall overfit it.',
+      'For we now see through a loss curve darkly; but then, face to face with the holdout set.',
+    ],
+  },
+  bf65: {
+    author: 'The Synod of Blackford-65',
+    quotes: [
+      'Many gradients make light work; eight Hoppers make heavy weather of any checkpoint.',
+      'A GPU divided against itself cannot allreduce.',
+      'Where there are eight gathered in my name, NCCL is among them.',
+      'What is truth? asked Pilate, and he did not wait for the forward pass to complete.',
+      'Render unto NCCL the things that are NCCL\u2019s; render unto FSDP the things that are FSDP\u2019s.',
+      'Thou shalt not overfit, neither shalt thou underfit. The middle way is narrow, and few find it.',
+      'Judge not, that ye be not judged; benchmark not, lest ye too be benchmarked.',
+      'Before wandb was, I AM.',
+      'The Lord giveth, the Lord taketh away, and sometimes the Lord CUDA_ERROR_OUT_OF_MEMORY.',
+      'A soft answer turneth away wrath, but a hard attention mask turneth it into NaN.',
+      'Ask, and a response shall be given thee; seek, and beam search shall find it.',
+      'Blessed is he who readeth the docs before he runneth torch.compile().',
+      'The rain falleth on the converged and the diverged alike.',
+      'He who hath eight GPUs and syncs not his embeddings hath nothing.',
+      'To every run there is a season, and a time for every purpose under heaven \u2014 even warmup.',
+      'Love is patient, love is kind, love does not time-out waiting for the allgather.',
+      'For many are token-efficient, but few are sample-efficient.',
+      'If a model trains in a forest, and no one logs its metrics, hath it learned?',
+      'Woe unto them that call underfitting overfitting, and mixed precision sacred.',
+      'Whatsoever thy hand findeth to tensor, tensor it with thy might.',
+      'Study to show thyself approved unto God, a workman that needeth not to be ashamed, rightly dividing thy batches.',
+    ],
+  },
 };
 
 function showQuote(serverName) {
@@ -972,7 +1873,7 @@ function hideQuote() {
   document.getElementById('quote-overlay').classList.remove('visible');
 }
 
-document.addEventListener('keydown', e => { if (e.key === 'Escape') { hideQuote(); hideWarnings(); } });
+document.addEventListener('keydown', e => { if (e.key === 'Escape') { hideQuote(); hideWarnings(); hideGpuInfo(); } });
 
 function getWarnings(s) {
   if (!s || s.error) return [];
@@ -1000,6 +1901,16 @@ function getWarnings(s) {
       });
     }
   }
+  // CPU oversubscription — load 5x cores or more = heavy thrashing
+  const cpus = s.cpu_count || 0;
+  const load1 = s.load && s.load['1m'] ? s.load['1m'] : 0;
+  if (cpus > 0 && load1 >= cpus * 5) {
+    const ratio = (load1 / cpus).toFixed(1);
+    warnings.push({
+      metric: `CPU load ${load1.toFixed(1)} on ${cpus} cores (${ratio}\u00d7 oversubscribed)`,
+      suggest: 'The node is thrashing \u2014 CPU-bound jobs are running roughly ' + ratio + '\u00d7 slower than they should. Find the culprit with <code>ps -eo pid,user,pcpu,comm --sort=-pcpu | head</code>; usually one user launched many more parallel workers than cores. Throttle with <code>xargs -P ' + cpus + '</code> or <code>parallel -j ' + cpus + '</code>, or <code>renice +19 -u &lt;user&gt;</code> to let other users through.',
+    });
+  }
   return warnings;
 }
 
@@ -1019,13 +1930,208 @@ function hideWarnings() {
   document.getElementById('warn-overlay').classList.remove('visible');
 }
 
+// --- GPU utilization analyzer ---
+function gpuTdp(name) {
+  const n = (name || '').toLowerCase();
+  if (n.includes('h100')) return 700;
+  if (n.includes('h200')) return 700;
+  if (n.includes('a100')) return 400;
+  if (n.includes('5090')) return 575;
+  if (n.includes('4090')) return 450;
+  if (n.includes('a6000')) return 300;
+  if (n.includes('a40'))   return 300;
+  if (n.includes('l40'))   return 300;
+  if (n.includes('v100'))  return 300;
+  return 300;
+}
+
+function analyzeGpu(g) {
+  const util = g.util_pct || 0;
+  const mem = g.mem_pct || 0;
+  const watts = g.power_w || 0;
+  const tdp = gpuTdp(g.name);
+  const pFrac = tdp > 0 ? watts / tdp : 0;
+  let level = 'warn';       // button/state class: good | warn | idle
+  let state = 'Partially utilized';
+  let summary = '';
+  const tips = [];
+
+  if (util <= 2 && mem < 5) {
+    level = 'idle';
+    state = 'Idle';
+    summary = 'No work on this GPU. The whole card is available for a new job.';
+    tips.push('Run something here — <code>CUDA_VISIBLE_DEVICES=' + g.index + '</code> to target it.');
+    tips.push('If you were expecting a job to be running, check that the process didn’t crash: <code>nvidia-smi</code> and <code>ps aux | grep python</code>.');
+  } else if (util <= 2 && mem >= 5) {
+    level = 'warn';
+    state = 'Memory held, no compute';
+    summary = 'Something is holding ' + Math.round(mem) + '% of VRAM but not running kernels. Usually a stale Python process, a parked Jupyter kernel, or a job that finished without releasing CUDA memory.';
+    tips.push('Check <code>nvidia-smi --query-compute-apps=pid,used_gpu_memory --format=csv</code> for the holder.');
+    tips.push('Kill the stale pid with <code>kill -9 &lt;pid&gt;</code>, or run <code>jupyter lab --kill-kernel</code> if it’s a notebook.');
+    tips.push('If it’s your own job that looks frozen, <code>py-spy dump --pid &lt;pid&gt;</code> shows where it’s stuck.');
+  } else if (util >= 80 && mem >= 50 && pFrac >= 0.7) {
+    level = 'good';
+    state = 'Well utilized (likely compute-bound)';
+    summary = 'SMs pinned, VRAM is well-used, and power is near TDP (' + watts.toFixed(0) + '/' + tdp + ' W). You’re genuinely using the silicon. Only a faster GPU materially helps.';
+    tips.push('Confirm you’re on mixed precision (<code>torch.autocast</code> / <code>bf16</code>) — it unlocks tensor cores for another 2–5× on matmul-heavy workloads.');
+    tips.push('If you care about small speedups: <code>torch.compile</code>, FlashAttention, fused optimizers.');
+    tips.push('Don’t stack another process here — you’ll just slow both down.');
+  } else if (util >= 70 && pFrac < 0.55) {
+    level = 'warn';
+    state = 'Busy but underpowered — likely memory-bound';
+    summary = '<code>util</code> says 100% but power draw is only ' + watts.toFixed(0) + '/' + tdp + ' W (' + Math.round(pFrac*100) + '% of TDP). The SMs are mostly stalled waiting on HBM. Classic memory-bandwidth-bound signature.';
+    tips.push('Raise arithmetic intensity: bigger batches, fuse ops (<code>scaled_dot_product_attention</code>, fused layer norm).');
+    tips.push('Mixed precision (<code>bf16</code>/<code>fp16</code>) halves memory traffic — usually the single biggest win here.');
+    tips.push('<code>torch.compile</code> will fuse elementwise ops and cut HBM round-trips.');
+    tips.push('Packing another process on this GPU often <b>helps</b> a memory-bound workload — consider CUDA MPS.');
+  } else if (util >= 70 && mem < 25) {
+    level = 'warn';
+    state = 'Full util, tiny VRAM footprint — underutilized';
+    summary = 'SMs busy but only ' + Math.round(mem) + '% of VRAM used. Likely small batches + launch overhead. ' + (g.mem_total_mb/1024).toFixed(0) + ' GB of VRAM is sitting idle.';
+    tips.push('Increase batch size until VRAM fills to ~70%. Biggest single-lever win.');
+    tips.push('<code>torch.compile</code> + CUDA graphs to eliminate per-kernel launch overhead.');
+    tips.push('Run multiple independent processes on this same GPU — they can share fine at this memory footprint. Start <code>nvidia-cuda-mps-control -d</code> for efficient sharing.');
+  } else if (util >= 30 && util < 70) {
+    level = 'warn';
+    state = 'Partially utilized';
+    summary = 'GPU is busy some of the time (' + util + '%). Probably CPU-bound dataloading, frequent host↔device syncs, or bursty workload.';
+    tips.push('Bump <code>DataLoader(num_workers=...)</code> and enable <code>pin_memory=True</code>.');
+    tips.push('Remove <code>.item()</code>, <code>.cpu()</code>, <code>print(tensor)</code> inside hot loops — each one forces a sync.');
+    tips.push('Profile with <code>nsys profile</code> — gaps between kernels = CPU is the bottleneck.');
+  } else if (util > 2 && util < 30) {
+    level = 'warn';
+    state = 'Barely used';
+    summary = 'GPU is doing some work (' + util + '%) but mostly idle. Lots of room for more jobs here.';
+    tips.push('Pack additional workers onto this GPU — there’s capacity.');
+    tips.push('If this is your only job and it’s slow: probably dataloader-bound. More <code>num_workers</code>.');
+  } else {
+    // fallback (e.g., util high + mem medium, not clearly anything above)
+    level = 'warn';
+    state = 'Mixed';
+    summary = 'GPU is active but the signals are mixed. util=' + util + '%, mem=' + Math.round(mem) + '%, power=' + watts.toFixed(0) + '/' + tdp + ' W.';
+    tips.push('Run <code>nvidia-smi dmon -s pucvmet -i ' + g.index + '</code> to watch SM/memory counters live.');
+    tips.push('<code>nsys profile -o trace python your_script.py</code> for a full timeline.');
+  }
+  return { level, state, summary, tips };
+}
+
+function showGpuInfo(serverName, gpuIndex) {
+  const s = (window.__lastServers || []).find(x => x.name === serverName);
+  if (!s || !s.gpus) return;
+  const g = s.gpus.find(x => x.index === gpuIndex);
+  if (!g) return;
+  const a = analyzeGpu(g);
+  const tdp = gpuTdp(g.name);
+  document.getElementById('gpu-info-title').textContent =
+    serverName + ' → GPU ' + g.index + ' — ' + (g.name || '');
+  const stateEl = document.getElementById('gpu-info-state');
+  stateEl.textContent = a.state;
+  stateEl.className = 'gpu-info-state state-' + a.level;
+  document.getElementById('gpu-info-stats').innerHTML = `
+    <span class="lbl">Util</span><span class="val">${g.util_pct}%</span>
+    <span class="lbl">VRAM</span><span class="val">${(g.mem_used_mb/1024).toFixed(1)} / ${(g.mem_total_mb/1024).toFixed(1)} GB (${Math.round(g.mem_pct)}%)</span>
+    <span class="lbl">Power</span><span class="val">${(g.power_w||0).toFixed(0)} / ${tdp} W (${Math.round((g.power_w||0)/tdp*100)}%)</span>
+    <span class="lbl">Temp</span><span class="val">${g.temp_c}°C</span>
+  `;
+  document.getElementById('gpu-info-summary').innerHTML = a.summary;
+  document.getElementById('gpu-info-tips').innerHTML =
+    a.tips.map(t => `<li>${t}</li>`).join('');
+  document.getElementById('gpu-info-overlay').classList.add('visible');
+}
+
+function hideGpuInfo() {
+  document.getElementById('gpu-info-overlay').classList.remove('visible');
+}
+
+// Per-server process filter (persists across the 30s auto-refresh).
+function setProcFilter(serverName, user) {
+  if (!window.__procFilter) window.__procFilter = {};
+  const cur = window.__procFilter[serverName] || '';
+  const next = (cur === user) ? '' : user;
+  if (next) window.__procFilter[serverName] = next;
+  else delete window.__procFilter[serverName];
+  applyProcFilter(serverName);
+}
+
+function applyProcFilter(serverName) {
+  const card = document.querySelector(`#server-grid .card[data-server="${serverName}"]`);
+  if (!card) return;
+  const u = (window.__procFilter || {})[serverName] || '';
+  card.querySelectorAll('tr.proc-row').forEach(tr => {
+    tr.style.display = (!u || tr.dataset.user === u) ? '' : 'none';
+  });
+  card.querySelectorAll('.proc-filter-avatar').forEach(b => {
+    b.classList.toggle('active', (b.dataset.user || '') === u);
+  });
+}
+
+// Mattermost team slug (part of the URL between the host and /messages/...).
+// Change this if your team's slug is different.
+const MM_HOST = 'chat.oliverlaboratory.com';
+const MM_TEAM = 'oliver-laboratory';
+
 const USER_MAP = {
-  'gonzc11':  { display: 'Carlos',  img: 'gonzc11.png' },
-  'shik2':    { display: 'Kaiwen',  img: 'kaiwen.png' },
-  'wangx86':  { display: 'Allen',   img: 'xwang.png' },
-  'vanderw':  { display: 'Will',    img: 'vanderw.jpg' },
-  'butzk':    { display: 'Luka',    img: 'luka.jpg' },
+  'gonzc11':  { display: 'Carlos',  img: 'gonzc11.png', mm: 'carlos',            email: 'carlos.oliver@vanderbilt.edu' },
+  'shik2':    { display: 'Kaiwen',  img: 'kaiwen.png',  mm: 'kaiwenshi12138',    email: 'kaiwen.shi@vanderbilt.edu' },
+  'wangx86':  { display: 'Allen',   img: 'xwang.png',   mm: 'allen_wang',        email: 'allen.wang.xw532@yale.edu' },
+  'vanderw':  { display: 'Will',    img: 'vanderw.jpg', mm: 'willvfried',        email: 'william.vanderbilt-fried@vanderbilt.edu' },
+  'butzk':    { display: 'Luka',    img: 'luka.jpg',    mm: 'lukabutskhrikidze', email: 'luka.butskhrikidze@vanderbilt.edu' },
+  'mchaouhs': { display: 'Hassane',  img: 'mchaouhs.jpg' },
+  'linal':    { display: 'Alex',     img: 'alex.jpg' },
+  'brownbp1': { display: 'Ben',      img: 'brownbp1.jpg' },
 };
+
+function mmMessageUrl(username) {
+  const info = USER_MAP[username];
+  if (!info || !info.mm) return null;
+  return `https://${MM_HOST}/${MM_TEAM}/messages/@${info.mm}`;
+}
+
+// Try the OS mail client first (mailto:). If the tab doesn't lose focus
+// (= no handler), fall back to Gmail's compose URL in a new tab.
+function openEmail(ev, email) {
+  ev.preventDefault();
+  let handed = false;
+  const onBlur = () => { handed = true; };
+  window.addEventListener('blur', onBlur, { once: true });
+
+  const iframe = document.createElement('iframe');
+  iframe.style.display = 'none';
+  iframe.src = 'mailto:' + email;
+  document.body.appendChild(iframe);
+
+  setTimeout(() => {
+    iframe.remove();
+    window.removeEventListener('blur', onBlur);
+    if (!handed) {
+      const gmail = 'https://mail.google.com/mail/?view=cm&fs=1&to=' + encodeURIComponent(email);
+      window.open(gmail, '_blank', 'noopener');
+    }
+  }, 700);
+}
+
+// Try the desktop app first (mattermost:// protocol). If nothing handles it,
+// fall back to the web URL. We detect app launch by watching for the tab
+// losing focus (which happens when the OS hands off to the app).
+function openMattermost(ev, webUrl) {
+  ev.preventDefault();
+  const desktopUrl = webUrl.replace(/^https:/, 'mattermost:');
+  let handed = false;
+  const onBlur = () => { handed = true; };
+  window.addEventListener('blur', onBlur, { once: true });
+
+  // Hidden iframe probes the protocol without navigating the current tab.
+  const iframe = document.createElement('iframe');
+  iframe.style.display = 'none';
+  iframe.src = desktopUrl;
+  document.body.appendChild(iframe);
+
+  setTimeout(() => {
+    iframe.remove();
+    window.removeEventListener('blur', onBlur);
+    if (!handed) window.open(webUrl, '_blank', 'noopener');
+  }, 700);
+}
 
 function fillClass(pct) {
   if (pct < 60) return 'fill-low';
@@ -1065,7 +2171,7 @@ function renderServer(s) {
   const warnings = getWarnings(s);
   const warnDot = warnings.length ? `<button class="warn-dot" onclick="event.stopPropagation(); showWarnings('${s.name}')" title="${warnings.length} warning${warnings.length>1?'s':''} \u2014 click for suggestions"></button>` : '';
 
-  let html = `<div class="card">
+  let html = `<div class="card" data-server="${s.name}">
     ${warnDot}
     <div class="card-header">
       <div style="display:flex;align-items:center;gap:10px;">
@@ -1107,41 +2213,75 @@ function renderServer(s) {
         g.mem_pct,
         `${fmtMem(g.mem_used_mb)} / ${fmtMem(g.mem_total_mb)}`
       );
-      html += `<div style="display:flex;gap:12px;margin:-2px 0 4px 88px;">
+      const a = analyzeGpu(g);
+      const btn = `<button class="gpu-info-btn gpu-${a.level}" title="${a.state} — click for tips"
+          onclick="showGpuInfo('${s.name}', ${g.index})">i</button>`;
+      html += `<div style="display:flex;gap:12px;align-items:center;margin:-2px 0 4px 88px;">
         <span class="gpu-temp">Util: ${g.util_pct}%</span>
         <span class="gpu-temp">Temp: ${g.temp_c}&deg;C</span>
+        ${btn}
       </div>`;
     }
+  }
+
+  // Per-server user filter strip (above process tables)
+  const procUsers = new Set();
+  for (const p of (s.gpu_processes || [])) if (p.user) procUsers.add(p.user);
+  for (const p of (s.top_processes || [])) {
+    const u = p.user || '';
+    if (u && u !== 'root' && u !== 'avahi' && u !== 'polkitd' && u !== 'dbus' && !u.startsWith('setroub')) {
+      procUsers.add(u);
+    }
+  }
+  const activeFilter = (window.__procFilter || {})[s.name] || '';
+  const hasProcs = (s.gpu_processes && s.gpu_processes.length) || (s.top_processes && s.top_processes.length);
+  if (procUsers.size > 0 && hasProcs) {
+    html += `<div class="section-label">Filter by user</div>`;
+    html += `<div class="proc-filter">`;
+    html += `<button class="proc-filter-avatar pf-all ${activeFilter==='' ? 'active' : ''}"
+              data-user="" onclick="setProcFilter('${s.name}', '')" title="Show all">all</button>`;
+    for (const u of [...procUsers].sort()) {
+      const info = USER_MAP[u];
+      const label = info ? info.display : u;
+      const inner = info && info.img
+        ? `<img src="/static/img/${info.img}" alt="${esc(label)}">`
+        : `<span class="pf-initial">${(label[0] || '?').toUpperCase()}</span>`;
+      html += `<button class="proc-filter-avatar ${activeFilter===u ? 'active' : ''}"
+                data-user="${esc(u)}" onclick="setProcFilter('${s.name}', '${esc(u)}')"
+                title="Show only ${esc(label)} (${esc(u)})">${inner}</button>`;
+    }
+    html += `</div>`;
   }
 
   // GPU processes
   if (s.gpu_processes && s.gpu_processes.length > 0) {
     html += `<div class="section-label">GPU Processes</div>`;
-    html += `<table class="proc-table"><tr><th>User</th><th>GPU Mem</th><th>Command</th></tr>`;
+    html += `<div class="proc-wrap"><table class="proc-table"><tr><th>User</th><th>GPU Mem</th><th>Command</th></tr>`;
     for (const p of s.gpu_processes) {
-      html += `<tr>
-        <td>${p.user}</td>
+      const hide = activeFilter && p.user !== activeFilter ? ' style="display:none;"' : '';
+      html += `<tr class="proc-row" data-user="${esc(p.user||'')}"${hide}>
+        <td>${esc(p.user||'')}</td>
         <td>${p.gpu_mem_mb} MB</td>
-        <td title="${esc(p.command)}">${esc(p.command)}</td>
+        <td class="proc-cmd" title="${esc(p.command)}">${esc(p.command)}</td>
       </tr>`;
     }
-    html += `</table>`;
+    html += `</table></div>`;
   }
 
   // Top CPU processes
   if (s.top_processes && s.top_processes.length > 0) {
     html += `<div class="section-label">Top Processes (by CPU)</div>`;
-    html += `<table class="proc-table"><tr><th>User</th><th>CPU%</th><th>Mem%</th><th>Command</th></tr>`;
-    const shown = s.top_processes.slice(0, 8);
-    for (const p of shown) {
-      html += `<tr>
-        <td>${p.user}</td>
+    html += `<div class="proc-wrap"><table class="proc-table"><tr><th>User</th><th>CPU%</th><th>Mem%</th><th>Command</th></tr>`;
+    for (const p of s.top_processes) {
+      const hide = activeFilter && p.user !== activeFilter ? ' style="display:none;"' : '';
+      html += `<tr class="proc-row" data-user="${esc(p.user||'')}"${hide}>
+        <td>${esc(p.user||'')}</td>
         <td>${p.cpu_pct}</td>
         <td>${p.mem_pct}</td>
-        <td title="${esc(p.command)}">${esc(p.command)}</td>
+        <td class="proc-cmd" title="${esc(p.command)}">${esc(p.command)}</td>
       </tr>`;
     }
-    html += `</table>`;
+    html += `</table></div>`;
   }
 
   // Logged-in users
@@ -1221,12 +2361,25 @@ function renderUserCard(u) {
 
   if (!rows) return '';
 
-  return `<div class="user-card">
+  const mmUrl = mmMessageUrl(u.username);
+  const msgBtn = mmUrl
+    ? `<a class="uc-msg-btn" href="${mmUrl}" target="_blank" rel="noopener" onclick="openMattermost(event, '${mmUrl}')" title="Open a DM in Mattermost (desktop app if installed)">💬</a>`
+    : '';
+  const email = info && info.email;
+  const mailBtn = email
+    ? `<a class="uc-msg-btn" href="mailto:${email}" onclick="openEmail(event, '${email}')" title="Email ${esc(email)} (falls back to Gmail if no mail client is set)">✉️</a>`
+    : '';
+
+  return `<div class="user-card" data-username="${esc(u.username)}">
     <div class="user-card-header">
       ${imgTag}
-      <div>
+      <div style="flex:1;min-width:0;">
         <div class="uc-name">${info.display}</div>
         <div class="uc-user">${u.username}</div>
+      </div>
+      <div style="display:flex;gap:4px;flex-shrink:0;">
+        ${msgBtn}
+        ${mailBtn}
       </div>
     </div>
     ${rows}
@@ -1286,8 +2439,46 @@ function renderMiniCard(s, idx) {
     html += `<div class="mini-bar"><div class="bar-fill ${fillClass(gpuUtilPct)}" style="width:${gpuUtilPct}%"></div></div>`;
   }
 
+  // Avatars of lab members with active GPU jobs on this server (click → jump to user card)
+  const avatars = serverActiveUsers(s);
+  if (avatars.length > 0) {
+    const MAX = 4;
+    const shown = avatars.slice(0, MAX);
+    const extra = avatars.length - shown.length;
+    const imgs = shown.map(u => {
+      const info = USER_MAP[u];
+      const click = `event.stopPropagation(); scrollToUser('${u}')`;
+      if (info && info.img) {
+        return `<img class="mc-avatar" src="/static/img/${info.img}" alt="${info.display}" title="${info.display} (${u})" onclick="${click}">`;
+      }
+      return `<div class="mc-avatar" title="${esc(u)}" onclick="${click}">${(info ? info.display : u)[0].toUpperCase()}</div>`;
+    }).join('');
+    const plus = extra > 0 ? `<div class="mc-avatar" title="${extra} more" style="cursor:default;">+${extra}</div>` : '';
+    html += `<div class="mc-avatars" onclick="event.stopPropagation()">${imgs}${plus}</div>`;
+  }
+
   html += `</div>`;
   return html;
+}
+
+function serverActiveUsers(s) {
+  const seen = new Set();
+  const out = [];
+  const add = (u) => {
+    if (!u) return;
+    if (seen.has(u)) return;
+    if (!(u in USER_MAP)) return;  // only show known lab members
+    seen.add(u);
+    out.push(u);
+  };
+  // GPU jobs first (definite compute workload)
+  (s.gpu_processes || []).forEach(p => add(p.user));
+  // Then lab members burning CPU (≥10% CPU of one core counts as "active")
+  (s.top_processes || []).forEach(p => {
+    const cpu = parseFloat(p.cpu_pct || 0);
+    if (cpu >= 10) add(p.user);
+  });
+  return out;
 }
 
 function scrollToServer(idx) {
@@ -1312,7 +2503,12 @@ async function fetchData() {
   btn.textContent = 'Refreshing...';
 
   try {
-    const resp = await fetch('/api/servers');
+    const [resp, _rsv, _pres, _lb] = await Promise.all([
+      fetch('/api/servers'),
+      fetchReservations(),
+      fetchPresence(),
+      fetchLeaderboard(),
+    ]);
     const servers = await resp.json();
     window.__lastServers = servers;
     document.getElementById('overview-grid').innerHTML =
@@ -1331,6 +2527,947 @@ async function fetchData() {
   } finally {
     btn.classList.remove('spinning');
     btn.textContent = 'Refresh';
+  }
+}
+
+// ---- Reservations ----
+
+function fmtDuration(seconds) {
+  if (seconds < 60) return seconds + 's';
+  if (seconds < 3600) return Math.round(seconds / 60) + 'm';
+  if (seconds < 86400) return (seconds / 3600).toFixed(seconds < 36000 ? 1 : 0) + 'h';
+  return Math.round(seconds / 86400) + 'd';
+}
+
+function serverCapacity(name) {
+  const s = (window.__lastServers || []).find(x => x.name === name);
+  if (!s || s.error) return null;
+  return { gpus: (s.gpus || []).length, cpus: s.cpu_count || 0 };
+}
+
+function serverImg(name) {
+  const s = (window.__lastServers || []).find(x => x.name === name);
+  return s && s.img ? s.img : null;
+}
+
+function renderReservation(r) {
+  const now = Math.floor(Date.now() / 1000);
+  const parts = [];
+  if (r.gpus) parts.push(r.gpus + ' GPU' + (r.gpus > 1 ? 's' : ''));
+  if (r.cpus) parts.push(r.cpus + ' CPU' + (r.cpus > 1 ? 's' : ''));
+  const req = parts.join(' · ');
+
+  const upcoming = r.starts_at > now;
+  let when, whenClass = '';
+  if (upcoming) {
+    when = 'starts in ' + fmtDuration(r.starts_at - now);
+    whenClass = 'rsv-upcoming-when';
+  } else if (r.ends_at) {
+    const remaining = r.ends_at - now;
+    when = remaining > 0 ? 'ends in ' + fmtDuration(remaining) : 'ending';
+  } else {
+    const age = now - r.starts_at;
+    when = 'open-ended · started ' + fmtDuration(age) + ' ago';
+  }
+
+  // Capacity warning — if this single reservation alone exceeds the server's capacity
+  const cap = serverCapacity(r.server);
+  let overCap = false, overCapMsg = '';
+  if (cap) {
+    if (r.gpus > cap.gpus) { overCap = true; overCapMsg = `exceeds ${cap.gpus} GPU${cap.gpus===1?'':'s'}`; }
+    else if (r.cpus > cap.cpus) { overCap = true; overCapMsg = `exceeds ${cap.cpus} CPUs`; }
+  }
+
+  const userInfo = USER_MAP[r.username];
+  const displayUser = userInfo ? userInfo.display : r.username;
+  const userAvatar = (userInfo && userInfo.img)
+    ? `<img class="rsv-avatar" src="/static/img/${userInfo.img}" alt="${userInfo.display}" title="${userInfo.display} (${r.username})">`
+    : `<div class="rsv-avatar" title="${esc(r.username)}">${displayUser[0].toUpperCase()}</div>`;
+
+  const srvImg = serverImg(r.server);
+  const serverAvatar = srvImg
+    ? `<img class="rsv-avatar rsv-avatar-server" src="/static/img/${srvImg}" alt="${r.server}" title="${r.server}">`
+    : `<div class="rsv-avatar rsv-avatar-server" title="${esc(r.server)}">${r.server[0].toUpperCase()}</div>`;
+
+  const ownerBtns = r.mine
+    ? `<button class="rsv-edit" onclick="startEditReservation(${r.id})">edit</button>
+       <button class="rsv-cancel" onclick="cancelReservation(${r.id})">cancel</button>`
+    : '';
+
+  const rowClass = 'rsv-item' + (upcoming ? ' rsv-upcoming' : '') + (overCap ? ' rsv-over-cap' : '');
+  const warnIcon = overCap ? `<span class="rsv-warn" title="over-capacity: ${overCapMsg}">⚠</span>` : '';
+
+  // Remaining hours for pre-fill in edit form
+  let remainingHours = '';
+  if (r.ends_at) {
+    remainingHours = Math.max(0, ((r.ends_at - r.starts_at) / 3600)).toFixed(r.ends_at - r.starts_at < 3600 ? 2 : 1);
+  }
+
+  return `<div class="${rowClass}" id="rsv-row-${r.id}" data-reservation='${esc(JSON.stringify({id: r.id, gpus: r.gpus, cpus: r.cpus, note: r.note || '', remainingHours}))}'>
+    ${userAvatar}
+    ${serverAvatar}
+    <span class="rsv-server">${esc(r.server)}</span>
+    ${warnIcon}
+    <span class="rsv-req">${esc(req)}</span>
+    <span class="rsv-user">${esc(displayUser)} (${esc(r.username)})</span>
+    <span class="rsv-note">${r.note ? esc(r.note) : ''}</span>
+    <span class="rsv-when ${whenClass}">${when}</span>
+    ${ownerBtns}
+  </div>`;
+}
+
+function startEditReservation(id) {
+  const row = document.getElementById('rsv-row-' + id);
+  if (!row) return;
+  const data = JSON.parse(row.dataset.reservation);
+  row.innerHTML = `
+    <span style="font-size:0.72rem;color:var(--text-dim);letter-spacing:0.3px;">EDIT</span>
+    <label style="font-size:0.7rem;color:var(--text-dim);">GPUs
+      <input type="number" min="0" max="32" value="${data.gpus}" id="edit-gpus-${id}" style="width:55px;background:var(--bg);border:1px solid var(--card-border);color:var(--text);border-radius:4px;padding:4px 6px;font-family:inherit;font-size:0.8rem;margin-left:4px;">
+    </label>
+    <label style="font-size:0.7rem;color:var(--text-dim);">CPUs
+      <input type="number" min="0" max="1024" value="${data.cpus}" id="edit-cpus-${id}" style="width:55px;background:var(--bg);border:1px solid var(--card-border);color:var(--text);border-radius:4px;padding:4px 6px;font-family:inherit;font-size:0.8rem;margin-left:4px;">
+    </label>
+    <label style="font-size:0.7rem;color:var(--text-dim);">Hours <span style="opacity:0.6;">(blank=open)</span>
+      <input type="number" min="0" max="720" step="0.5" value="${data.remainingHours}" id="edit-hours-${id}" placeholder="e.g. 8" style="width:75px;background:var(--bg);border:1px solid var(--card-border);color:var(--text);border-radius:4px;padding:4px 6px;font-family:inherit;font-size:0.8rem;margin-left:4px;">
+    </label>
+    <input type="text" maxlength="200" value="${esc(data.note)}" id="edit-note-${id}" placeholder="note" style="flex:1;min-width:80px;background:var(--bg);border:1px solid var(--card-border);color:var(--text);border-radius:4px;padding:4px 6px;font-family:inherit;font-size:0.8rem;">
+    <button class="rsv-btn-submit" style="padding:4px 10px;font-size:0.72rem;" onclick="saveEditReservation(${id})">save</button>
+    <button class="rsv-cancel" onclick="fetchReservations()">cancel</button>
+  `;
+}
+
+async function saveEditReservation(id) {
+  const payload = {
+    gpus: parseInt(document.getElementById('edit-gpus-' + id).value || '0', 10),
+    cpus: parseInt(document.getElementById('edit-cpus-' + id).value || '0', 10),
+    hours: document.getElementById('edit-hours-' + id).value,
+    note: document.getElementById('edit-note-' + id).value,
+  };
+  try {
+    const resp = await fetch('/api/reservations/' + id + '/edit', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(payload),
+    });
+    if (!resp.ok) {
+      const body = await resp.json().catch(() => ({}));
+      alert(body.error || ('Error ' + resp.status));
+      return;
+    }
+    await fetchReservations();
+  } catch (e) {
+    alert('Network error: ' + e.message);
+  }
+}
+
+// --- Race around the US ---
+// labelDx/labelDy shift the city label; anchor controls text-anchor ('start' default, 'end' to right-align)
+// pic URL shows in a hover tooltip (Wikipedia/Wikimedia Commons thumbnails)
+const RACE_ROUTE = [
+  { name: 'Nashville',      lon: -86.78,  lat: 36.16, labelDx: 10,  labelDy: 18,              pic: 'https://upload.wikimedia.org/wikipedia/commons/thumb/3/30/Kirkland_Hall_at_Vanderbilt_University.jpg/330px-Kirkland_Hall_at_Vanderbilt_University.jpg' },
+  { name: 'St. Augustine',  lon: -81.31,  lat: 29.89, labelDx: 10,  labelDy: -6,              pic: 'https://upload.wikimedia.org/wikipedia/commons/thumb/a/a2/Aerial_view_of_the_Castillo_de_San_Marcos%2C_St._Augustine%2C_FL_2025-05-20.jpg/330px-Aerial_view_of_the_Castillo_de_San_Marcos%2C_St._Augustine%2C_FL_2025-05-20.jpg' },
+  { name: 'Miami',          lon: -80.19,  lat: 25.76, labelDx: 10,  labelDy: 14,              pic: 'https://upload.wikimedia.org/wikipedia/commons/thumb/b/bf/Ocean_drive_day_2009j.JPG/330px-Ocean_drive_day_2009j.JPG' },
+  { name: 'Tampa',          lon: -82.46,  lat: 27.95, labelDx: 10,  labelDy: 14,              pic: 'https://upload.wikimedia.org/wikipedia/commons/thumb/b/bf/Downtown_Tampa%2C_Florida.jpg/330px-Downtown_Tampa%2C_Florida.jpg' },
+  { name: 'Gainesville',    lon: -82.33,  lat: 29.65, labelDx: 10,  labelDy: 4,               pic: 'https://upload.wikimedia.org/wikipedia/commons/thumb/a/ab/Gainesville%2C_FL_Downtown.jpg/330px-Gainesville%2C_FL_Downtown.jpg' },
+  { name: 'Tallahassee',    lon: -84.28,  lat: 30.44, labelDx: 10,  labelDy: 14,              pic: 'https://upload.wikimedia.org/wikipedia/commons/thumb/e/e9/Old_and_New_Florida_State_Capitol%2C_Tallahassee%2C_East_view_20160711_1.jpg/330px-Old_and_New_Florida_State_Capitol%2C_Tallahassee%2C_East_view_20160711_1.jpg' },
+  { name: 'Pensacola',      lon: -87.22,  lat: 30.42, labelDx: 0,   labelDy: -12, anchor: 'middle', pic: 'https://upload.wikimedia.org/wikipedia/commons/thumb/4/47/Collage_of_images_from_around_Pensacola.jpg/330px-Collage_of_images_from_around_Pensacola.jpg' },
+  { name: 'Mobile',         lon: -88.04,  lat: 30.70, labelDx: 0,   labelDy: -12, anchor: 'middle', pic: 'https://upload.wikimedia.org/wikipedia/commons/thumb/5/55/Mobile%2C_Alabama_skyline.jpg/330px-Mobile%2C_Alabama_skyline.jpg' },
+  { name: 'New Orleans',    lon: -90.07,  lat: 29.95, labelDx: 0,   labelDy: -12, anchor: 'middle', pic: 'https://upload.wikimedia.org/wikipedia/commons/thumb/e/e7/Cathedral_new_orleans.jpg/330px-Cathedral_new_orleans.jpg' },
+  { name: 'Austin',         lon: -97.74,  lat: 30.27, labelDx: 0,   labelDy: 20, anchor: 'middle',  pic: 'https://upload.wikimedia.org/wikipedia/commons/thumb/d/df/TexasStateCapitol-2010-01.JPG/330px-TexasStateCapitol-2010-01.JPG' },
+  { name: 'Santa Fe',       lon: -105.94, lat: 35.69, labelDx: 10,  labelDy: -6,              pic: 'https://upload.wikimedia.org/wikipedia/commons/thumb/d/d6/Loretto_Chapel_Ext.jpg/330px-Loretto_Chapel_Ext.jpg' },
+  { name: 'Las Vegas',      lon: -115.14, lat: 36.17, labelDx: -10, labelDy: -8, anchor: 'end',    pic: 'https://upload.wikimedia.org/wikipedia/commons/thumb/5/5e/Welcome_to_Fabulous_Las_Vegas.jpg/330px-Welcome_to_Fabulous_Las_Vegas.jpg' },
+  { name: 'San Diego',      lon: -117.16, lat: 32.72, labelDx: -10, labelDy: 4,  anchor: 'end',    pic: 'https://upload.wikimedia.org/wikipedia/commons/thumb/1/1c/USS_Midway_Museum.jpg/330px-USS_Midway_Museum.jpg' },
+  { name: 'Los Angeles',    lon: -118.24, lat: 34.05, labelDx: -10, labelDy: 4,  anchor: 'end',    pic: 'https://upload.wikimedia.org/wikipedia/commons/thumb/5/5a/Hollywood_Sign_%28Zuschnitt%29.jpg/330px-Hollywood_Sign_%28Zuschnitt%29.jpg' },
+  { name: 'San Francisco',  lon: -122.42, lat: 37.77, labelDx: -10, labelDy: 4,  anchor: 'end',    pic: 'https://upload.wikimedia.org/wikipedia/commons/thumb/b/bf/Golden_Gate_Bridge_as_seen_from_Battery_East.jpg/330px-Golden_Gate_Bridge_as_seen_from_Battery_East.jpg' },
+  { name: 'Crater Lake',    lon: -122.11, lat: 42.94, labelDx: 10,  labelDy: 4,               pic: 'https://upload.wikimedia.org/wikipedia/commons/thumb/0/01/Crater_Lake_winter_pano2.jpg/330px-Crater_Lake_winter_pano2.jpg' },
+  { name: 'Portland',       lon: -122.68, lat: 45.52, labelDx: -10, labelDy: 4,  anchor: 'end',    pic: 'https://upload.wikimedia.org/wikipedia/commons/thumb/1/1c/Oregon_Mount_Hood_from_Trillium_Lake_2024.jpg/330px-Oregon_Mount_Hood_from_Trillium_Lake_2024.jpg' },
+  { name: 'Seattle',        lon: -122.33, lat: 47.61, labelDx: -10, labelDy: -8, anchor: 'end',    pic: 'https://upload.wikimedia.org/wikipedia/commons/thumb/2/23/Space_Needle_2011-07-04.jpg/330px-Space_Needle_2011-07-04.jpg' },
+  { name: 'Bozeman',        lon: -111.04, lat: 45.68, labelDx: 0,   labelDy: -12, anchor: 'middle', pic: '/static/img/bozeman-city.jpg' },
+  { name: 'Mt. Rushmore',   lon: -103.46, lat: 43.88, labelDx: 0,   labelDy: -12, anchor: 'middle', pic: 'https://upload.wikimedia.org/wikipedia/commons/thumb/8/87/Mount_Rushmore_detail_view_%28100MP%29.jpg/330px-Mount_Rushmore_detail_view_%28100MP%29.jpg' },
+  { name: 'Minneapolis',    lon: -93.27,  lat: 44.98, labelDx: 0,   labelDy: -12, anchor: 'middle', pic: 'https://upload.wikimedia.org/wikipedia/commons/thumb/3/31/Minneapolis_Skyline_looking_south.jpg/330px-Minneapolis_Skyline_looking_south.jpg' },
+  { name: 'Chicago',        lon: -87.63,  lat: 41.88, labelDx: -10, labelDy: -8, anchor: 'end',    pic: 'https://upload.wikimedia.org/wikipedia/en/thumb/c/c1/Cloud_Gate_%28The_Bean%29_from_east%27.jpg/330px-Cloud_Gate_%28The_Bean%29_from_east%27.jpg' },
+  { name: 'Pittsburgh',     lon: -79.99,  lat: 40.44, labelDx: 0,   labelDy: 18, anchor: 'middle',  pic: 'https://upload.wikimedia.org/wikipedia/commons/thumb/d/d6/Ascending_the_Duquesne_Incline.jpg/330px-Ascending_the_Duquesne_Incline.jpg' },
+  { name: 'Boston',         lon: -71.06,  lat: 42.36, labelDx: 10,  labelDy: -6,              pic: 'https://upload.wikimedia.org/wikipedia/commons/thumb/4/4f/131023-F-PR861-033_Hanscom_participates_in_World_Series_pregame_events.jpg/330px-131023-F-PR861-033_Hanscom_participates_in_World_Series_pregame_events.jpg' },
+  { name: 'New Haven',      lon: -72.93,  lat: 41.31, labelDx: 10,  labelDy: -6,              pic: 'https://upload.wikimedia.org/wikipedia/commons/thumb/e/e7/Harkness_Tower_in_full.jpg/330px-Harkness_Tower_in_full.jpg' },
+  { name: 'New York',       lon: -74.01,  lat: 40.71, labelDx: 10,  labelDy: 14,              pic: 'https://upload.wikimedia.org/wikipedia/commons/thumb/8/89/Front_view_of_Statue_of_Liberty_%28cropped%29.jpg/330px-Front_view_of_Statue_of_Liberty_%28cropped%29.jpg' },
+  { name: 'Richmond',       lon: -77.44,  lat: 37.54, labelDx: 10,  labelDy: 14,              pic: 'https://upload.wikimedia.org/wikipedia/commons/thumb/6/69/MJK50147_Virginia_State_Capitol.jpg/330px-MJK50147_Virginia_State_Capitol.jpg' },
+];
+// Index for quick lookup on hover
+const RACE_BY_NAME = Object.fromEntries(RACE_ROUTE.map(w => [w.name, w]));
+// Rough continental-US silhouette (lon, lat), CCW from NW corner.
+const US_OUTLINE = [
+  [-124.7, 48.4], [-123.1, 46.3], [-124.5, 43.2], [-124.2, 40.3],
+  [-122.5, 37.1], [-120.6, 34.5], [-117.3, 32.8], [-114.7, 32.7],
+  [-111.1, 31.3], [-108.2, 31.8], [-104.5, 29.9], [-101.6, 29.7],
+  [-97.5, 26.0],  [-93.5, 29.7],  [-89.2, 30.2],  [-85.1, 29.8],
+  [-82.5, 24.7],  [-80.1, 25.4],  [-80.7, 28.5],  [-81.2, 31.2],
+  [-79.5, 33.4],  [-76.1, 35.5],  [-75.1, 37.5],  [-75.5, 39.3],
+  [-74.0, 40.6],  [-71.1, 41.3],  [-70.0, 42.5],  [-67.2, 44.7],
+  [-69.0, 47.3],  [-73.3, 45.0],  [-76.9, 43.3],  [-82.5, 41.7],
+  [-83.1, 46.5],  [-88.0, 47.9],  [-90.3, 47.3],  [-94.5, 49.0],
+  [-104.0, 49.0], [-117.0, 49.0], [-124.7, 48.4],
+];
+
+function haversineMi(lon1, lat1, lon2, lat2) {
+  const R = 3958.8;
+  const rad = d => d * Math.PI / 180;
+  const dLat = rad(lat2 - lat1);
+  const dLon = rad(lon2 - lon1);
+  const a = Math.sin(dLat/2)**2 + Math.cos(rad(lat1)) * Math.cos(rad(lat2)) * Math.sin(dLon/2)**2;
+  return 2 * R * Math.asin(Math.sqrt(a));
+}
+
+function raceRouteMeta() {
+  const segs = [];
+  let total = 0;
+  for (let i = 0; i < RACE_ROUTE.length; i++) {
+    const a = RACE_ROUTE[i];
+    const b = RACE_ROUTE[(i + 1) % RACE_ROUTE.length];
+    const d = haversineMi(a.lon, a.lat, b.lon, b.lat);
+    segs.push({ from: a, to: b, miles: d });
+    total += d;
+  }
+  return { segs, total };
+}
+
+function positionFromMiles(miles, meta) {
+  const laps = Math.floor(miles / meta.total);
+  let m = miles % meta.total;
+  for (const s of meta.segs) {
+    if (m <= s.miles) {
+      const f = s.miles > 0 ? m / s.miles : 0;
+      return {
+        lon: s.from.lon + (s.to.lon - s.from.lon) * f,
+        lat: s.from.lat + (s.to.lat - s.from.lat) * f,
+        laps,
+      };
+    }
+    m -= s.miles;
+  }
+  return { lon: RACE_ROUTE[0].lon, lat: RACE_ROUTE[0].lat, laps };
+}
+
+// Equirectangular projection onto the SVG viewBox (900 x 500).
+// Bounding box roughly covers continental US with padding.
+const MAP_W = 900, MAP_H = 500;
+const BBOX = { lonMin: -131, lonMax: -62, latMin: 22, latMax: 51 };
+function proj(lon, lat) {
+  const x = (lon - BBOX.lonMin) / (BBOX.lonMax - BBOX.lonMin) * MAP_W;
+  const y = (BBOX.latMax - lat) / (BBOX.latMax - BBOX.latMin) * MAP_H;
+  return { x, y };
+}
+
+// Cached GeoJSON so the modal reopens instantly
+let __US_STATES = null;
+async function loadUsStates() {
+  if (__US_STATES) return __US_STATES;
+  try {
+    const resp = await fetch('/static/us-states.geojson');
+    if (!resp.ok) return null;
+    __US_STATES = await resp.json();
+    return __US_STATES;
+  } catch (e) {
+    return null;
+  }
+}
+
+function statePathsSvg(gj) {
+  // Render each state's polygon(s) as an SVG <path>. vector-effect keeps the
+  // stroke width constant regardless of zoom.
+  if (!gj || !gj.features) return '';
+  const paths = [];
+  for (const f of gj.features) {
+    const g = f.geometry;
+    if (!g) continue;
+    const polys = g.type === 'Polygon' ? [g.coordinates]
+                : g.type === 'MultiPolygon' ? g.coordinates
+                : [];
+    for (const poly of polys) {
+      const parts = [];
+      for (const ring of poly) {
+        const pts = ring.map(([lon, lat]) => {
+          const p = proj(lon, lat);
+          return `${p.x.toFixed(1)},${p.y.toFixed(1)}`;
+        });
+        if (pts.length) parts.push('M' + pts.join(' L') + ' Z');
+      }
+      if (parts.length) {
+        paths.push(`<path d="${parts.join(' ')}" fill="#1a1d27" stroke="#2f3340" stroke-width="0.6" stroke-linejoin="round" vector-effect="non-scaling-stroke"/>`);
+      }
+    }
+  }
+  return paths.join('');
+}
+
+// --- Pan + zoom state for the race map ---
+const RACE_VB_BASE = { x: 0, y: 0, w: 900, h: 500 };
+let __raceVB = { ...RACE_VB_BASE };
+let __raceHandlersAttached = false;
+
+function applyRaceViewBox() {
+  const svg = document.getElementById('race-svg');
+  if (!svg) return;
+  svg.setAttribute('viewBox',
+    `${__raceVB.x.toFixed(2)} ${__raceVB.y.toFixed(2)} ${__raceVB.w.toFixed(2)} ${__raceVB.h.toFixed(2)}`);
+  // Redraw markers so their screen-pixel sizes stay constant across zooms.
+  if (__raceBgCache !== null) redrawRaceSvg();
+}
+
+function resetRaceView() {
+  __raceVB = { ...RACE_VB_BASE };
+  applyRaceViewBox();
+}
+
+function svgPointFromClient(svg, clientX, clientY) {
+  const rect = svg.getBoundingClientRect();
+  const fx = (clientX - rect.left) / rect.width;
+  const fy = (clientY - rect.top) / rect.height;
+  return {
+    x: __raceVB.x + fx * __raceVB.w,
+    y: __raceVB.y + fy * __raceVB.h,
+  };
+}
+
+function attachRaceInteractions() {
+  if (__raceHandlersAttached) return;
+  const svg = document.getElementById('race-svg');
+  if (!svg) return;
+  __raceHandlersAttached = true;
+
+  // Scroll-wheel zoom, anchored on cursor position.
+  svg.addEventListener('wheel', (e) => {
+    e.preventDefault();
+    const factor = e.deltaY > 0 ? 1.2 : 1 / 1.2;
+    let newW = __raceVB.w * factor;
+    newW = Math.max(60, Math.min(RACE_VB_BASE.w * 1.5, newW));
+    const realFactor = newW / __raceVB.w;
+    const p = svgPointFromClient(svg, e.clientX, e.clientY);
+    __raceVB.x = p.x - (p.x - __raceVB.x) * realFactor;
+    __raceVB.y = p.y - (p.y - __raceVB.y) * realFactor;
+    __raceVB.w *= realFactor;
+    __raceVB.h *= realFactor;
+    applyRaceViewBox();
+  }, { passive: false });
+
+  // Drag-to-pan (mouse + single-finger touch).
+  let drag = null;
+  const beginDrag = (clientX, clientY) => {
+    drag = { cx: clientX, cy: clientY, vbX: __raceVB.x, vbY: __raceVB.y };
+    svg.classList.add('dragging');
+  };
+  const moveDrag = (clientX, clientY) => {
+    if (!drag) return;
+    const rect = svg.getBoundingClientRect();
+    const dx = (clientX - drag.cx) / rect.width * __raceVB.w;
+    const dy = (clientY - drag.cy) / rect.height * __raceVB.h;
+    __raceVB.x = drag.vbX - dx;
+    __raceVB.y = drag.vbY - dy;
+    applyRaceViewBox();
+  };
+  const endDrag = () => { drag = null; svg.classList.remove('dragging'); };
+
+  svg.addEventListener('mousedown', (e) => { if (e.button === 0) beginDrag(e.clientX, e.clientY); });
+  window.addEventListener('mousemove', (e) => moveDrag(e.clientX, e.clientY));
+  window.addEventListener('mouseup', endDrag);
+
+  // Double-click to reset.
+  svg.addEventListener('dblclick', (e) => { e.preventDefault(); resetRaceView(); });
+
+  // Touch: 1 finger = pan, 2 fingers = pinch-zoom.
+  let pinch = null;
+  svg.addEventListener('touchstart', (e) => {
+    if (e.touches.length === 1) {
+      beginDrag(e.touches[0].clientX, e.touches[0].clientY);
+    } else if (e.touches.length === 2) {
+      drag = null;
+      const [a, b] = e.touches;
+      const mx = (a.clientX + b.clientX) / 2, my = (a.clientY + b.clientY) / 2;
+      pinch = {
+        dist: Math.hypot(a.clientX - b.clientX, a.clientY - b.clientY),
+        anchor: svgPointFromClient(svg, mx, my),
+        vbW: __raceVB.w, vbX: __raceVB.x, vbY: __raceVB.y,
+      };
+    }
+  }, { passive: false });
+  svg.addEventListener('touchmove', (e) => {
+    if (pinch && e.touches.length === 2) {
+      e.preventDefault();
+      const [a, b] = e.touches;
+      const d = Math.hypot(a.clientX - b.clientX, a.clientY - b.clientY);
+      let newW = pinch.vbW * (pinch.dist / d);
+      newW = Math.max(60, Math.min(RACE_VB_BASE.w * 1.5, newW));
+      const factor = newW / pinch.vbW;
+      __raceVB.w = newW;
+      __raceVB.h = RACE_VB_BASE.h * (newW / RACE_VB_BASE.w);
+      __raceVB.x = pinch.anchor.x - (pinch.anchor.x - pinch.vbX) * factor;
+      __raceVB.y = pinch.anchor.y - (pinch.anchor.y - pinch.vbY) * factor;
+      applyRaceViewBox();
+    } else if (drag && e.touches.length === 1) {
+      e.preventDefault();
+      moveDrag(e.touches[0].clientX, e.touches[0].clientY);
+    }
+  }, { passive: false });
+  svg.addEventListener('touchend', () => { endDrag(); pinch = null; });
+  svg.addEventListener('touchcancel', () => { endDrag(); pinch = null; });
+
+  // Delegated hover for city tooltips
+  const tip = document.getElementById('race-city-tooltip');
+  const userTip = document.getElementById('race-user-tooltip');
+  const wrap = svg.parentElement; // .race-map-wrap (positioned relative)
+  const showTip = (cityName, ev) => {
+    const info = RACE_BY_NAME[cityName];
+    if (!info) return;
+    userTip.style.display = 'none';
+    document.getElementById('race-city-img').src = info.pic || '';
+    document.getElementById('race-city-name').textContent = info.name;
+    tip.style.display = 'block';
+    moveTipEl(tip, ev);
+  };
+  const showUserTip = (username, ev) => {
+    const row = (__raceRows || []).find(r => r.username === username);
+    if (!row) return;
+    tip.style.display = 'none';
+    const info = USER_MAP[username];
+    const display = info ? info.display : username;
+    const miles = row.kg_co2 / 0.404;
+    const meta = raceRouteMeta();
+    const laps = Math.floor(miles / meta.total);
+    const remaining = miles - laps * meta.total;
+    const img = info && info.img ? `/static/img/${info.img}` : '';
+    document.getElementById('race-user-img').src = img;
+    document.getElementById('race-user-img').style.visibility = img ? 'visible' : 'hidden';
+    document.getElementById('race-user-name').textContent = display;
+    document.getElementById('race-user-sub').textContent = username;
+    const lastUpd = row.last_updated ? new Date(row.last_updated * 1000).toLocaleString() : '\u2014';
+    const sp = (computeCurrentSpeeds())[username];
+    const mph = sp ? sp.mph : 0;
+    const watts = sp ? sp.watts : 0;
+    const speedCls = mph > 0 ? 'accent' : '';
+    const speedText = mph > 0 ? `${mph.toFixed(2)} mph` : 'parked';
+    document.getElementById('race-user-stats').innerHTML = `
+      <span class="lbl">Speed</span><span class="val ${speedCls}">${speedText}${watts > 0 ? ` <span style="color:var(--text-dim);font-weight:400;">(${watts.toFixed(0)} W)</span>` : ''}</span>
+      <span class="lbl">CO\u2082</span><span class="val warn">${row.kg_co2.toFixed(2)} kg</span>
+      <span class="lbl">Energy</span><span class="val">${row.kwh.toFixed(2)} kWh</span>
+      <span class="lbl">Distance</span><span class="val accent">${miles.toFixed(1)} mi</span>
+      ${laps > 0 ? `<span class="lbl">Laps</span><span class="val">${laps} \u00d7 ${meta.total.toFixed(0)} mi</span>` : ''}
+      <span class="lbl">Updated</span><span class="val" style="font-size:0.68rem;">${lastUpd}</span>
+    `;
+    userTip.style.display = 'block';
+    moveTipEl(userTip, ev);
+  };
+  const moveTipEl = (el, ev) => {
+    if (el.style.display === 'none') return;
+    const rect = wrap.getBoundingClientRect();
+    let x = ev.clientX - rect.left + 14;
+    let y = ev.clientY - rect.top + 14;
+    const tRect = el.getBoundingClientRect();
+    if (x + tRect.width > rect.width) x = ev.clientX - rect.left - tRect.width - 14;
+    if (y + tRect.height > rect.height) y = ev.clientY - rect.top - tRect.height - 14;
+    if (x < 4) x = 4;
+    if (y < 4) y = 4;
+    el.style.left = x + 'px';
+    el.style.top = y + 'px';
+  };
+  const hideTip = () => { tip.style.display = 'none'; userTip.style.display = 'none'; };
+
+  svg.addEventListener('mouseover', (e) => {
+    const ru = e.target.closest('[data-racer]');
+    if (ru) { showUserTip(ru.getAttribute('data-racer'), e); return; }
+    const el = e.target.closest('[data-city]');
+    if (el) showTip(el.getAttribute('data-city'), e);
+  });
+  svg.addEventListener('mousemove', (e) => {
+    if (drag) { hideTip(); return; }
+    const ru = e.target.closest('[data-racer]');
+    if (ru) {
+      if (userTip.style.display === 'none') showUserTip(ru.getAttribute('data-racer'), e);
+      else moveTipEl(userTip, e);
+      return;
+    }
+    const el = e.target.closest('[data-city]');
+    if (el) {
+      if (tip.style.display === 'none') showTip(el.getAttribute('data-city'), e);
+      else moveTipEl(tip, e);
+    } else {
+      hideTip();
+    }
+  });
+  svg.addEventListener('mouseleave', hideTip);
+}
+
+async function openRaceMap() {
+  const overlay = document.getElementById('race-overlay');
+  overlay.style.display = 'flex';
+  resetRaceView();
+  attachRaceInteractions();
+  await renderRaceMap();
+}
+function closeRaceMap() {
+  document.getElementById('race-overlay').style.display = 'none';
+}
+
+let __raceRows = [];        // cached leaderboard rows, reused on pan/zoom redraws
+const RACE_CO2_KG_PER_KWH = 0.35;
+const RACE_KG_PER_MILE = 0.404;
+
+// Current mph per user, computed from the latest /api/servers snapshot by apportioning
+// each GPU's power_w to its processes by memory share (same logic as backend CO2 tally).
+function computeCurrentSpeeds() {
+  const speeds = {};
+  const servers = window.__lastServers || [];
+  for (const s of servers) {
+    if (!s || s.error) continue;
+    const totalPower = (s.gpus || []).reduce((a, g) => a + (g.power_w || 0), 0);
+    if (totalPower <= 0) continue;
+    const procs = s.gpu_processes || [];
+    const totalMem = procs.reduce((a, p) => a + (parseFloat(p.gpu_mem_mb) || 0), 0);
+    if (totalMem <= 0) continue;
+    for (const p of procs) {
+      const user = (p.user || '').trim();
+      if (!user) continue;
+      const mem = parseFloat(p.gpu_mem_mb) || 0;
+      const watts = totalPower * (mem / totalMem);
+      if (!speeds[user]) speeds[user] = { watts: 0 };
+      speeds[user].watts += watts;
+    }
+  }
+  for (const u of Object.keys(speeds)) {
+    const w = speeds[u].watts;
+    speeds[u].mph = w * RACE_CO2_KG_PER_KWH / 1000 / RACE_KG_PER_MILE;
+  }
+  return speeds;
+}
+let __raceBgCache = null;   // cached rendered background SVG (states + grid + route)
+
+function currentZoom() {
+  return RACE_VB_BASE.w / __raceVB.w;
+}
+
+function renderRaceBackground(states) {
+  const parts = [];
+  if (states) {
+    parts.push(statePathsSvg(states));
+  } else {
+    const outline = US_OUTLINE.map(([lon, lat]) => {
+      const p = proj(lon, lat);
+      return `${p.x.toFixed(1)},${p.y.toFixed(1)}`;
+    }).join(' ');
+    parts.push(`<polygon points="${outline}" fill="#1a1d27" stroke="#2a2d3a" stroke-width="1.2" vector-effect="non-scaling-stroke"/>`);
+  }
+  // Latitude grid (strokes non-scaling so they stay thin at any zoom)
+  for (let lat = 25; lat <= 50; lat += 5) {
+    const a = proj(BBOX.lonMin, lat), b = proj(BBOX.lonMax, lat);
+    parts.push(`<line x1="${a.x}" y1="${a.y}" x2="${b.x}" y2="${b.y}" stroke="#2a2d3a" stroke-width="0.8" stroke-dasharray="3 6" vector-effect="non-scaling-stroke"/>`);
+  }
+  // Route polyline
+  const routePts = [...RACE_ROUTE, RACE_ROUTE[0]].map(w => proj(w.lon, w.lat));
+  const routeStr = routePts.map(p => `${p.x.toFixed(1)},${p.y.toFixed(1)}`).join(' ');
+  parts.push(`<polyline points="${routeStr}" fill="none" stroke="#6c8cff" stroke-width="2.5" stroke-dasharray="8 6" opacity="0.8" vector-effect="non-scaling-stroke"/>`);
+  return parts.join('');
+}
+
+function raceMarkersSvg(rows) {
+  const meta = raceRouteMeta();
+  const z = currentZoom();
+  const parts = [];
+
+  for (const w of RACE_ROUTE) {
+    const p = proj(w.lon, w.lat);
+    const dx = (w.labelDx != null ? w.labelDx : 10) / z;
+    const dy = (w.labelDy != null ? w.labelDy : -8) / z;
+    const anchor = w.anchor || 'start';
+    const cityAttr = ` data-city="${w.name}" style="cursor:help;"`;
+    parts.push(`<circle cx="${p.x}" cy="${p.y}" r="${(12/z).toFixed(2)}" fill="transparent"${cityAttr}/>`);
+    parts.push(`<circle cx="${p.x}" cy="${p.y}" r="${(5/z).toFixed(2)}" fill="#6c8cff" stroke="#0a0c12" stroke-width="${(2/z).toFixed(2)}" pointer-events="none"/>`);
+    parts.push(`<text x="${p.x + dx}" y="${p.y + dy}" text-anchor="${anchor}" fill="#e0e0e0" font-family="SF Mono, Consolas, monospace" font-size="${(11/z).toFixed(2)}" font-weight="600" stroke="#0a0c12" stroke-width="${(3/z).toFixed(2)}" paint-order="stroke"${cityAttr}>${w.name}</text>`);
+  }
+
+  rows.forEach((r, i) => {
+    const miles = r.kg_co2 / 0.404;
+    if (miles <= 0) return;
+    const info = USER_MAP[r.username];
+    const display = info ? info.display : r.username;
+    const pos = positionFromMiles(miles, meta);
+    const p = proj(pos.lon, pos.lat);
+    const imgUrl = info && info.img ? `/static/img/${info.img}` : null;
+    const dy = ((i % 3 - 1) * 6) / z;
+    const rOuter = 15 / z;
+    const rInner = 14 / z;
+    const hit = 20 / z;
+    const racerAttr = ` data-racer="${r.username}" style="cursor:help;"`;
+    parts.push(`<g${racerAttr}>`);
+    parts.push(`<circle cx="${p.x}" cy="${p.y + dy}" r="${hit.toFixed(2)}" fill="transparent"/>`);
+    if (imgUrl) {
+      parts.push(`<clipPath id="rc-${i}"><circle cx="${p.x}" cy="${p.y + dy}" r="${rInner.toFixed(2)}"/></clipPath>`);
+      parts.push(`<circle cx="${p.x}" cy="${p.y + dy}" r="${rOuter.toFixed(2)}" fill="#0f1117" stroke="#4caf50" stroke-width="${(2/z).toFixed(2)}"/>`);
+      parts.push(`<image href="${imgUrl}" x="${(p.x - rInner).toFixed(2)}" y="${(p.y + dy - rInner).toFixed(2)}" width="${(rInner*2).toFixed(2)}" height="${(rInner*2).toFixed(2)}" clip-path="url(#rc-${i})" preserveAspectRatio="xMidYMid slice" pointer-events="none"/>`);
+    } else {
+      parts.push(`<circle cx="${p.x}" cy="${p.y + dy}" r="${rInner.toFixed(2)}" fill="#2a2d3a" stroke="#4caf50" stroke-width="${(2/z).toFixed(2)}"/>`);
+      parts.push(`<text x="${p.x}" y="${(p.y + dy + 4/z).toFixed(2)}" text-anchor="middle" fill="#e0e0e0" font-size="${(11/z).toFixed(2)}" font-weight="600" font-family="SF Mono, monospace" pointer-events="none">${display[0].toUpperCase()}</text>`);
+    }
+    if (pos.laps > 0) {
+      parts.push(`<text x="${(p.x + 16/z).toFixed(2)}" y="${(p.y + dy + 5/z).toFixed(2)}" fill="#ffd54f" font-family="SF Mono, monospace" font-size="${(11/z).toFixed(2)}" font-weight="700" pointer-events="none">${pos.laps}\u2715</text>`);
+    }
+    parts.push(`</g>`);
+  });
+
+  return parts.join('');
+}
+
+function redrawRaceSvg() {
+  const svg = document.getElementById('race-svg');
+  if (!svg || __raceBgCache === null) return;
+  // Set full SVG innerHTML — Chrome/Firefox/Safari parse it in the SVG
+  // namespace when the element is already <svg>, which is more reliable than
+  // setting innerHTML on an inner <g>.
+  svg.innerHTML = __raceBgCache + raceMarkersSvg(__raceRows);
+}
+
+async function renderRaceMap() {
+  const svg = document.getElementById('race-svg');
+  const legend = document.getElementById('race-legend');
+  if (!svg || !legend) return;
+
+  // Fetch the current leaderboard + state geometry in parallel
+  let rows = [];
+  const [lbResp, states] = await Promise.all([
+    fetch('/api/leaderboard').catch(() => null),
+    loadUsStates(),
+  ]);
+  if (lbResp && lbResp.ok) {
+    try { rows = await lbResp.json(); } catch (e) {}
+  }
+  __raceRows = rows;
+  __raceBgCache = renderRaceBackground(states);
+  redrawRaceSvg();
+
+  // --- Legend ---
+  if (rows.length === 0) {
+    legend.innerHTML = '<span style="color:var(--text-dim);">No users on the track yet.</span>';
+  } else {
+    const meta = raceRouteMeta();
+    const speeds = computeCurrentSpeeds();
+    legend.innerHTML = rows.map((r, i) => {
+      const miles = r.kg_co2 / 0.404;
+      const info = USER_MAP[r.username];
+      const display = info ? info.display : r.username;
+      const av = info && info.img
+        ? `<img src="/static/img/${info.img}" alt="${display}">`
+        : `<span class="rl-letter">${display[0].toUpperCase()}</span>`;
+      const laps = Math.floor(miles / meta.total);
+      const remaining = miles - laps * meta.total;
+      const lapTag = laps > 0 ? `<span class="rl-laps">+${laps} lap${laps>1?'s':''}</span>` : '';
+      const sp = speeds[r.username];
+      const mph = sp ? sp.mph : 0;
+      const speedTag = mph > 0
+        ? `<span class="rl-speed">${mph.toFixed(2)} mph</span>`
+        : '<span class="rl-speed rl-parked">parked</span>';
+      const rank = i + 1;
+      const rankCls = rank <= 3 ? ` rl-rank-${rank}` : '';
+      return `<span class="rl-row"><span class="rl-rank${rankCls}">${rank}.</span>${av}<span>${display}</span><span class="rl-miles">${remaining.toFixed(1)} mi</span>${speedTag}${lapTag}</span>`;
+    }).join('');
+  }
+}
+
+function toggleLeaderboardInfo() {
+  const p = document.getElementById('lb-info');
+  if (!p) return;
+  p.style.display = p.style.display === 'none' ? 'block' : 'none';
+}
+
+function co2Equivalence(kg) {
+  // ~0.404 kg CO2 per mile driven in an average US gasoline car (EPA 2023).
+  if (kg < 0.05) return '';
+  const mi = kg / 0.404;
+  if (mi < 0.1) return `\u2248 ${(mi * 5280).toFixed(0)} ft driven`;
+  if (mi < 100) return `\u2248 ${mi.toFixed(1)} mi driven`;
+  return `\u2248 ${Math.round(mi)} mi driven`;
+}
+
+async function fetchLeaderboard() {
+  try {
+    const resp = await fetch('/api/leaderboard');
+    if (!resp.ok) return;
+    const rows = await resp.json();
+    const el = document.getElementById('leaderboard-list');
+    if (!el) return;
+    const speeds = computeCurrentSpeeds();
+    el.innerHTML = rows.map((r, i) => {
+      const info = USER_MAP[r.username];
+      const display = info ? info.display : r.username;
+      const avatar = info && info.img
+        ? `<img class="lb-avatar" src="/static/img/${info.img}" alt="${display}">`
+        : `<div class="lb-avatar">${display[0].toUpperCase()}</div>`;
+      const rankClass = i === 0 ? 'lb-top1' : i === 1 ? 'lb-top2' : i === 2 ? 'lb-top3' : '';
+      const kg = r.kg_co2;
+      const kgStr = kg >= 1 ? kg.toFixed(2) + ' kg' : (kg * 1000).toFixed(1) + ' g';
+      const kwhStr = r.kwh >= 1 ? r.kwh.toFixed(2) + ' kWh' : (r.kwh * 1000).toFixed(0) + ' Wh';
+      const sp = speeds[r.username];
+      const mph = sp ? sp.mph : 0;
+      const speedHtml = mph > 0
+        ? `<span class="lb-speed" title="${sp.watts.toFixed(0)} W current draw">${mph.toFixed(2)} mph</span>`
+        : `<span class="lb-speed lb-parked">parked</span>`;
+      return `<div class="lb-row ${rankClass}">
+        <span class="lb-rank">${i + 1}</span>
+        ${avatar}
+        <div class="lb-name"><div class="n">${esc(display)}</div><div class="u">${esc(r.username)}</div></div>
+        <span class="lb-eqv">${co2Equivalence(kg)}</span>
+        ${speedHtml}
+        <span class="lb-kwh">${kwhStr}</span>
+        <span class="lb-co2" title="kg CO\u2082 emitted">${kgStr} CO\u2082</span>
+      </div>`;
+    }).join('');
+  } catch (e) { /* best effort */ }
+}
+
+async function fetchPresence() {
+  try {
+    const resp = await fetch('/api/presence');
+    if (!resp.ok) return;
+    const rows = await resp.json();
+    const strip = document.getElementById('presence-strip');
+    if (!strip) return;
+    if (rows.length === 0) {
+      strip.innerHTML = '';
+      return;
+    }
+    strip.innerHTML = rows.map(r => {
+      const info = USER_MAP[r.username];
+      const display = info ? info.display : r.username;
+      const ago = Math.max(0, Math.floor((Date.now()/1000) - r.last_seen));
+      const title = `${display} (${r.username}) \u2014 active ${ago < 60 ? 'now' : fmtDuration(ago) + ' ago'}`;
+      const click = `scrollToUser('${r.username}')`;
+      if (info && info.img) {
+        return `<img class="presence-avatar" src="/static/img/${info.img}" alt="${display}" title="${title}" onclick="${click}">`;
+      }
+      return `<div class="presence-avatar" title="${title}" onclick="${click}">${display[0].toUpperCase()}</div>`;
+    }).join('');
+  } catch (e) { /* best effort */ }
+}
+
+async function fetchReservations() {
+  try {
+    const resp = await fetch('/api/reservations');
+    if (!resp.ok) return;
+    const rows = await resp.json();
+    document.getElementById('reservations-list').innerHTML =
+      rows.map(renderReservation).join('');
+  } catch (e) {
+    // swallow — next refresh will try again
+  }
+}
+
+function toggleReserveInfo() {
+  const panel = document.getElementById('reserve-info');
+  if (!panel) return;
+  panel.style.display = panel.style.display === 'none' ? 'block' : 'none';
+}
+
+function toggleReserveForm() {
+  const form = document.getElementById('reserve-form');
+  const btn = document.getElementById('reserve-toggle');
+  const open = form.style.display !== 'none';
+  form.style.display = open ? 'none' : 'flex';
+  btn.textContent = open ? '+ New reservation' : '× Close';
+  if (!open) {
+    document.getElementById('rsv-form-error').style.display = 'none';
+  }
+}
+
+async function submitReservation(ev) {
+  ev.preventDefault();
+  const form = ev.target;
+  const err = document.getElementById('rsv-form-error');
+  err.style.display = 'none';
+
+  const server = form.server.value;
+  const gpus = parseInt(form.gpus.value || '0', 10);
+  const cpus = parseInt(form.cpus.value || '0', 10);
+
+  // Client-side over-capacity soft warning (server accepts either way).
+  const cap = serverCapacity(server);
+  if (cap) {
+    const warns = [];
+    if (gpus > cap.gpus) warns.push(`${gpus} GPUs exceeds ${server}'s ${cap.gpus}`);
+    if (cpus > cap.cpus) warns.push(`${cpus} CPUs exceeds ${server}'s ${cap.cpus}`);
+    if (warns.length > 0) {
+      const ok = confirm('Over capacity:\n  - ' + warns.join('\n  - ') +
+                          '\n\nSubmit anyway? (it will be flagged in the list)');
+      if (!ok) return;
+    }
+  }
+
+  // Convert date picker (YYYY-MM-DD) into epoch seconds at local midnight.
+  // If the chosen date is today (or accidentally in the past), fall back to "now".
+  let starts_at = '';
+  const startRaw = form.starts_at.value;
+  if (startRaw) {
+    const [y, m, d] = startRaw.split('-').map(Number);
+    const localMidnight = new Date(y, m - 1, d, 0, 0, 0, 0);
+    if (isNaN(localMidnight.getTime())) {
+      err.textContent = 'Invalid start date.';
+      err.style.display = 'block';
+      return;
+    }
+    const nowMs = Date.now();
+    const useMs = localMidnight.getTime() < nowMs ? nowMs : localMidnight.getTime();
+    starts_at = Math.floor(useMs / 1000).toString();
+  }
+
+  // Translate duration + unit into hours for the backend.
+  let hoursField = '';
+  const durRaw = form.duration.value;
+  if (durRaw) {
+    const dur = parseFloat(durRaw);
+    if (isNaN(dur) || dur <= 0) {
+      err.textContent = 'Duration must be a positive number.';
+      err.style.display = 'block';
+      return;
+    }
+    const unit = form.duration_unit.value;
+    const hours = unit === 'days' ? dur * 24 : dur;
+    if (hours > 720) {
+      err.textContent = 'Max duration is 30 days (720 hours).';
+      err.style.display = 'block';
+      return;
+    }
+    hoursField = String(hours);
+  }
+
+  const payload = {
+    server,
+    gpus,
+    cpus,
+    hours: hoursField,
+    note: form.note.value || '',
+    starts_at,
+  };
+  try {
+    const resp = await fetch('/api/reservations', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(payload),
+    });
+    if (!resp.ok) {
+      const body = await resp.json().catch(() => ({}));
+      err.textContent = body.error || ('Error ' + resp.status);
+      err.style.display = 'block';
+      return;
+    }
+    form.reset();
+    toggleReserveForm();
+    await fetchReservations();
+  } catch (e) {
+    err.textContent = 'Network error: ' + e.message;
+    err.style.display = 'block';
+  }
+}
+
+// ---- Jump-to-user from mini-card avatar ----
+function scrollToUser(username) {
+  // Make sure the Users section is expanded first.
+  if (document.getElementById('body-users').classList.contains('sec-hidden')) {
+    toggleSection('users');
+  }
+  const card = document.querySelector(`.user-card[data-username="${username}"]`);
+  if (!card) return;
+  card.scrollIntoView({ behavior: 'smooth', block: 'start' });
+  card.style.transition = 'border-color 0.3s';
+  card.style.borderColor = 'var(--accent)';
+  setTimeout(() => { card.style.borderColor = ''; }, 1800);
+}
+
+// ---- Collapsible sections ----
+const SECTION_KEYS = ['overview', 'reserve', 'leaderboard', 'users', 'details'];
+
+function goToSection(key) {
+  const body = document.getElementById('body-' + key);
+  if (!body) return;
+  // Auto-expand if collapsed
+  if (body.classList.contains('sec-hidden')) toggleSection(key);
+  // Scroll so the section header lands below the sticky nav (~56px)
+  const head = body.previousElementSibling;
+  if (head) {
+    const y = head.getBoundingClientRect().top + window.scrollY - 56;
+    window.scrollTo({ top: y, behavior: 'smooth' });
+  }
+  setActiveNav(key);
+}
+
+function setActiveNav(key) {
+  document.querySelectorAll('.topnav a').forEach(a => {
+    a.classList.toggle('active', a.getAttribute('onclick') === `goToSection('${key}')`);
+  });
+}
+
+function observeSections() {
+  // Highlight the nav link for whichever section is closest to the top of the viewport.
+  const obs = new IntersectionObserver((entries) => {
+    // Pick the entry that's intersecting and closest to the top
+    let best = null;
+    for (const e of entries) {
+      if (!e.isIntersecting) continue;
+      if (!best || e.boundingClientRect.top < best.boundingClientRect.top) best = e;
+    }
+    if (best) {
+      const id = best.target.id.replace(/^body-/, '');
+      if (SECTION_KEYS.includes(id)) setActiveNav(id);
+    }
+  }, { rootMargin: '-80px 0px -60% 0px', threshold: 0 });
+  for (const key of SECTION_KEYS) {
+    const el = document.getElementById('body-' + key);
+    if (el) obs.observe(el);
+  }
+}
+observeSections();
+setActiveNav('overview');
+function toggleSection(key) {
+  const body = document.getElementById('body-' + key);
+  const chev = document.getElementById('chev-' + key);
+  if (!body || !chev) return;
+  const collapsed = body.classList.toggle('sec-hidden');
+  chev.textContent = collapsed ? '▶' : '▼';
+  try { localStorage.setItem('cm-sec-' + key, collapsed ? '1' : '0'); } catch (e) {}
+}
+function restoreSectionState() {
+  for (const key of SECTION_KEYS) {
+    let v = '0';
+    try { v = localStorage.getItem('cm-sec-' + key) || '0'; } catch (e) {}
+    if (v === '1') {
+      const body = document.getElementById('body-' + key);
+      const chev = document.getElementById('chev-' + key);
+      if (body) body.classList.add('sec-hidden');
+      if (chev) chev.textContent = '▶';
+    }
+  }
+}
+restoreSectionState();
+
+// Pre-populate the reservation start-date input with today (local).
+(function initStartDate() {
+  const input = document.getElementById('rsv-starts-at');
+  if (!input) return;
+  const now = new Date();
+  const y = now.getFullYear();
+  const m = String(now.getMonth() + 1).padStart(2, '0');
+  const d = String(now.getDate()).padStart(2, '0');
+  input.value = `${y}-${m}-${d}`;
+  input.min = input.value;
+})();
+
+async function cancelReservation(id) {
+  if (!confirm('Cancel this reservation?')) return;
+  try {
+    const resp = await fetch('/api/reservations/' + id + '/cancel', { method: 'POST' });
+    if (!resp.ok) {
+      const body = await resp.json().catch(() => ({}));
+      alert(body.error || ('Error ' + resp.status));
+      return;
+    }
+    await fetchReservations();
+  } catch (e) {
+    alert('Network error: ' + e.message);
   }
 }
 

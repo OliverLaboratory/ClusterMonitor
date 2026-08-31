@@ -1,0 +1,312 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Admin &middot; Compute Monitor</title>
+<link rel="icon" type="image/png" href="/static/img/favicon.png">
+<style>
+  :root {
+    --bg: #0f1117;
+    --card: #1a1d27;
+    --card-border: #2a2d3a;
+    --text: #e0e0e0;
+    --text-dim: #888;
+    --accent: #6c8cff;
+    --green: #4caf50;
+    --yellow: #ff9800;
+    --red: #f44336;
+    --bar-bg: #2a2d3a;
+  }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0; padding: 24px 28px;
+    font-family: 'SF Mono', 'Cascadia Code', 'Consolas', monospace;
+    background: var(--bg); color: var(--text); min-height: 100vh;
+  }
+  header {
+    display: flex; align-items: center; justify-content: space-between;
+    margin-bottom: 20px; padding-bottom: 14px;
+    border-bottom: 1px solid var(--card-border);
+  }
+  header h1 { margin: 0; font-size: 1.3rem; letter-spacing: 0.5px; }
+  header .nav { display: flex; gap: 14px; font-size: 0.8rem; color: var(--text-dim); }
+  header .nav a { color: var(--text-dim); text-decoration: none; border-bottom: 1px dashed transparent; }
+  header .nav a:hover { color: var(--accent); border-bottom-color: var(--accent); }
+  header .you { color: var(--text-dim); font-size: 0.78rem; }
+  header .you b { color: var(--accent); }
+
+  .flash-stack { margin-bottom: 20px; display: flex; flex-direction: column; gap: 8px; }
+  .flash {
+    padding: 10px 14px; border-radius: 6px;
+    font-size: 0.82rem; line-height: 1.5;
+    border: 1px solid var(--card-border); background: var(--card);
+    word-break: break-all;
+  }
+  .flash.ok    { border-color: var(--green); color: var(--green); }
+  .flash.error { border-color: var(--red);   color: var(--red);   }
+
+  .panel {
+    background: var(--card);
+    border: 1px solid var(--card-border);
+    border-radius: 10px;
+    padding: 20px 22px;
+    margin-bottom: 22px;
+  }
+  .panel h2 {
+    margin: 0 0 14px 0; font-size: 1.02rem; font-weight: 600;
+    display: flex; align-items: center; gap: 10px;
+  }
+  .panel h2 .count {
+    font-size: 0.72rem; color: var(--text-dim); font-weight: 500;
+    padding: 2px 8px; border: 1px solid var(--card-border); border-radius: 10px;
+  }
+  .panel p.hint { margin: 0 0 14px 0; font-size: 0.78rem; color: var(--text-dim); }
+
+  /* Forms */
+  form.inline-form { display: flex; flex-wrap: wrap; gap: 10px; align-items: flex-end; }
+  form.inline-form label {
+    display: flex; flex-direction: column; gap: 4px;
+    font-size: 0.68rem; color: var(--text-dim); text-transform: uppercase; letter-spacing: 0.8px;
+  }
+  form.inline-form input[type=text],
+  form.inline-form input[type=password],
+  form.inline-form input[type=number] {
+    background: var(--bg); border: 1px solid var(--card-border);
+    color: var(--text); font-family: inherit; font-size: 0.85rem;
+    padding: 7px 10px; border-radius: 5px; min-width: 160px;
+  }
+  form.inline-form input:focus { outline: none; border-color: var(--accent); }
+  form.inline-form input[type=number] { min-width: 80px; }
+  form.inline-form button {
+    font-family: inherit; font-size: 0.8rem; font-weight: 600;
+    padding: 8px 14px; border-radius: 5px; cursor: pointer;
+    background: var(--accent); border: 1px solid var(--accent); color: #0a0c12;
+  }
+  form.inline-form button:hover { filter: brightness(1.1); }
+
+  /* Tables */
+  table.admin {
+    width: 100%; border-collapse: collapse; font-size: 0.8rem;
+  }
+  table.admin th, table.admin td {
+    text-align: left; padding: 9px 10px; border-bottom: 1px solid var(--card-border);
+  }
+  table.admin th {
+    font-size: 0.68rem; font-weight: 500; color: var(--text-dim);
+    text-transform: uppercase; letter-spacing: 0.8px;
+  }
+  table.admin td.num { text-align: right; font-variant-numeric: tabular-nums; }
+  table.admin tr:last-child td { border-bottom: none; }
+  table.admin code {
+    background: var(--bar-bg); padding: 1px 6px; border-radius: 3px;
+    font-size: 0.75rem; color: var(--text);
+  }
+
+  .badge-status {
+    display: inline-block; padding: 2px 8px; border-radius: 10px;
+    font-size: 0.68rem; font-weight: 600; text-transform: uppercase; letter-spacing: 0.6px;
+    border: 1px solid transparent;
+  }
+  .badge-status.active  { color: var(--green);  border-color: var(--green);  }
+  .badge-status.used    { color: var(--text-dim); border-color: var(--card-border); }
+  .badge-status.expired { color: var(--yellow); border-color: var(--yellow); }
+
+  .btn-danger {
+    font-family: inherit; font-size: 0.72rem; font-weight: 600;
+    padding: 4px 10px; border-radius: 4px; cursor: pointer;
+    background: transparent; border: 1px solid var(--red); color: var(--red);
+  }
+  .btn-danger:hover { background: rgba(244, 67, 54, 0.12); }
+  .btn-ghost {
+    font-family: inherit; font-size: 0.72rem; font-weight: 500;
+    padding: 4px 10px; border-radius: 4px; cursor: pointer;
+    background: transparent; border: 1px solid var(--card-border); color: var(--text-dim);
+  }
+  .btn-ghost:hover { border-color: var(--accent); color: var(--accent); }
+  .row-inline-form { display: inline-flex; gap: 6px; align-items: center; }
+  .row-inline-form input {
+    background: var(--bg); border: 1px solid var(--card-border);
+    color: var(--text); font-family: inherit; font-size: 0.75rem;
+    padding: 4px 8px; border-radius: 4px; width: 150px;
+  }
+  .row-inline-form input:focus { outline: none; border-color: var(--accent); }
+
+  .signup-link {
+    color: var(--accent); text-decoration: none;
+    border-bottom: 1px dashed var(--accent);
+    font-size: 0.72rem; word-break: break-all;
+  }
+
+  .empty { color: var(--text-dim); font-size: 0.85rem; padding: 12px 0; }
+</style>
+</head>
+<body>
+
+<header>
+  <h1>Admin &middot; Compute Monitor</h1>
+  <div class="nav">
+    <a href="/">&larr; Dashboard</a>
+    <span class="you">Logged in as <b>{{ username }}</b></span>
+    <a href="/logout">Log out</a>
+  </div>
+</header>
+
+{% with messages = get_flashed_messages(with_categories=true) %}
+  {% if messages %}
+  <div class="flash-stack">
+    {% for cat, msg in messages %}
+      <div class="flash {{ cat }}">{{ msg }}</div>
+    {% endfor %}
+  </div>
+  {% endif %}
+{% endwith %}
+
+<section class="panel">
+  <h2>Create invite</h2>
+  <p class="hint">Generates a one-time signup link valid for N days. Send it to the user; they use it to set their own password.</p>
+  <form class="inline-form" method="post" action="/admin/invites">
+    <label>
+      Username
+      <input type="text" name="username" placeholder="linal" required
+             pattern="[a-z0-9][a-z0-9_-]{1,30}"
+             title="2-31 chars, lowercase letters/digits, - or _">
+    </label>
+    <label>
+      Note <span style="text-transform:none;">(optional)</span>
+      <input type="text" name="note" placeholder="Alex / VU student">
+    </label>
+    <label>
+      Valid for (days)
+      <input type="number" name="days" value="7" min="1" max="365">
+    </label>
+    <button type="submit">Generate invite</button>
+  </form>
+</section>
+
+<section class="panel">
+  <h2>Invites <span class="count">{{ invites|length }}</span></h2>
+  {% if invites %}
+    <table class="admin">
+      <thead>
+        <tr>
+          <th>Status</th>
+          <th>Username</th>
+          <th>Note</th>
+          <th>Signup link</th>
+          <th>Expires</th>
+          <th></th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for inv in invites %}
+        <tr>
+          <td><span class="badge-status {{ inv.status }}">{{ inv.status }}</span></td>
+          <td><code>{{ inv.username }}</code></td>
+          <td>{{ inv.note or '—' }}</td>
+          <td>
+            {% if inv.status == 'active' %}
+              <a class="signup-link" href="{{ inv.signup_url }}">{{ inv.signup_url }}</a>
+            {% else %}
+              <span style="color:var(--text-dim);">—</span>
+            {% endif %}
+          </td>
+          <td><span data-ts="{{ inv.expires_at }}" class="ts">&hellip;</span></td>
+          <td>
+            {% if inv.status == 'active' %}
+            <form method="post" action="/admin/invites/{{ inv.token }}/revoke"
+                  onsubmit="return confirm('Revoke this invite for {{ inv.username }}?');"
+                  style="display:inline;">
+              <button class="btn-danger" type="submit">Revoke</button>
+            </form>
+            {% endif %}
+          </td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  {% else %}
+    <div class="empty">No invites yet.</div>
+  {% endif %}
+</section>
+
+<section class="panel">
+  <h2>Users <span class="count">{{ users|length }}</span></h2>
+  {% if users %}
+    <table class="admin">
+      <thead>
+        <tr>
+          <th>Username</th>
+          <th>Role</th>
+          <th>Created</th>
+          <th>Last seen</th>
+          <th>Reset password</th>
+          <th></th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for u in users %}
+        <tr>
+          <td><code>{{ u.username }}</code></td>
+          <td>
+            {% if u.username in admin_users %}
+              <span style="color:var(--accent); font-weight:600; font-size:0.72rem;">admin</span>
+            {% else %}
+              <span style="color:var(--text-dim); font-size:0.72rem;">user</span>
+            {% endif %}
+          </td>
+          <td><span data-ts="{{ u.created_at }}" class="ts"></span></td>
+          <td>
+            {% if u.last_seen %}
+              <span data-ts="{{ u.last_seen }}" class="ts-rel"></span>
+            {% else %}
+              <span style="color:var(--text-dim);">never</span>
+            {% endif %}
+          </td>
+          <td>
+            <form class="row-inline-form" method="post"
+                  action="/admin/users/{{ u.username }}/password"
+                  onsubmit="return confirm('Reset password for {{ u.username }}?');">
+              <input type="password" name="password" placeholder="new password (8+ chars)"
+                     minlength="8" required>
+              <button class="btn-ghost" type="submit">Update</button>
+            </form>
+          </td>
+          <td>
+            {% if u.username not in admin_users %}
+              <form method="post" action="/admin/users/{{ u.username }}/delete"
+                    onsubmit="return confirm('Delete user {{ u.username }}? This cannot be undone.');"
+                    style="display:inline;">
+                <button class="btn-danger" type="submit">Delete</button>
+              </form>
+            {% endif %}
+          </td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  {% else %}
+    <div class="empty">No users yet.</div>
+  {% endif %}
+</section>
+
+<script>
+  document.querySelectorAll('.ts').forEach(el => {
+    const ts = parseInt(el.dataset.ts, 10);
+    if (ts) el.textContent = new Date(ts * 1000).toLocaleString();
+  });
+  document.querySelectorAll('.ts-rel').forEach(el => {
+    const ts = parseInt(el.dataset.ts, 10);
+    if (!ts) return;
+    const delta = Math.floor(Date.now() / 1000 - ts);
+    let txt;
+    if (delta < 60) txt = delta + 's ago';
+    else if (delta < 3600) txt = Math.floor(delta / 60) + 'm ago';
+    else if (delta < 86400) txt = Math.floor(delta / 3600) + 'h ago';
+    else txt = Math.floor(delta / 86400) + 'd ago';
+    el.textContent = txt;
+  });
+</script>
+
+</body>
+</html>
